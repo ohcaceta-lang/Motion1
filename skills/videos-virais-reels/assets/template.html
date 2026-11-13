@@ -1,0 +1,67 @@
+<!doctype html>
+<html><head><meta charset="utf-8"></head>
+<body>
+<!-- window.WORDS gerado pelo tighten.py:  echo "window.WORDS = $(cat assets/voz_edit.json);" > assets/words.js -->
+<script src="assets/words.js"></script>
+<script src="lib.js"></script>
+<script>
+/* MODELO — troque paleta, cenas e textos. Tudo é função do tempo t (render determinístico).
+   Regras que evitam retrabalho:
+   - corte de cena = ws(i) da primeira palavra da cena (−0,1 a −0,15 s). Nunca segundos fixos: se a voz mudar, tudo se ajusta.
+   - cada linha de texto ≤ 640 px (2–4 palavras; quebre frases longas em vários seq()); entre centros de linhas do mesmo bloco: 1,1–1,3 × maior fonte (nem apertado, nem espaçado).
+   - antes do render final: node render.js video.html --check  → precisa dar LAYOUT OK.
+   - cores sempre em hex de 6 dígitos ou nomes do lib (o lib aceita #fff, mas prefira #ffffff).
+   - carimbos/etiquetas absolutos: white-space:nowrap. */
+const COR = '#e3141b', CLARO = '#efe6d6';
+const A = 'assets/';
+const N = window.WORDS.length - 1;
+// índices das palavras que abrem cada cena (ajuste ao roteiro)
+const C1 = 0, C2 = ws(6) - 0.12, C3 = ws(14) - 0.12, C4 = ws(N - 3) - 0.1;
+const DUR = Math.ceil((we(N) + 2.0) * 10) / 10;
+
+/* Cena 1 — gancho: imagem de fundo com Ken Burns + texto palavra a palavra */
+{
+  const s = scene(C1, C2, '#000', 0.012);
+  bg(s, A + 'img1.jpg', { z0: 1.2, z1: 1.04, filter: 'brightness(.55) contrast(1.15)' });
+  shade(s, 'background:radial-gradient(ellipse at 50% 45%, rgba(0,0,0,.1), rgba(0,0,0,.8))');
+  seq(s, 360, 560, 0, 2, { font: FONTS.sans(50, 600), color: '#ffffff' }, { 2: { font: FONTS.serif(96), color: COR, glow: 'rgba(227,20,27,.5)', from: '#3a0608' } });
+  seq(s, 360, 660, 3, 5, { font: FONTS.sans(50, 600), color: '#ffffff' });
+}
+
+/* Cena 2 — dado/número com contador e carimbo */
+{
+  const s = scene(C2, C3, '#0b0909', 0.015);
+  seq(s, 360, 380, 6, 8, { font: FONTS.sans(46, 600), color: '#ffffff' });
+  const num = el('div', 'abs', s.el); num.style.cssText = `left:360px;top:640px;font:400 300px/1 Anton;color:${CLARO}`;
+  const st = el('div', 'abs', s.el, 'CONFIRMADO');
+  st.style.cssText = `left:360px;top:900px;white-space:nowrap;font:400 64px Anton;color:${COR};border:6px solid ${COR};padding:2px 22px;filter:url(#rough);opacity:0`;
+  s.updates.push(t => {
+    const p = prog(t, ws(9), ws(11));
+    num.textContent = Math.round(39 * easeOut(p)); num.style.opacity = p > 0 ? 1 : 0; num.style.transform = 'translate(-50%,-50%)';
+    const q = prog(t, ws(12), ws(12) + 0.18);
+    st.style.opacity = q > 0 ? 0.92 : 0; st.style.transform = `translate(-50%,-50%) rotate(-8deg) scale(${q > 0 ? lerp(2.2, 1, easeOutExpo(q)) : 0})`;
+  });
+}
+
+/* Cena 3 — desenvolvimento (copie/cole o padrão das cenas acima) */
+{
+  const s = scene(C3, C4, '#000', 0.012);
+  bg(s, A + 'img2.jpg', { z0: 1.0, z1: 1.15, filter: 'brightness(.6)' });
+  seq(s, 360, 900, 14, 17, { font: FONTS.sans(46, 600), color: '#ffffff' });
+}
+
+/* Cena final — CTA com enquete */
+{
+  const s = scene(C4, DUR, 'radial-gradient(ellipse at 50% 45%, #1a1212 0%, #050303 70%)', 0.01);
+  seq(s, 360, 420, N - 3, N - 2, { font: FONTS.serif(110), color: CLARO });
+  seq(s, 360, 540, N - 1, N, { font: FONTS.sans(56, 600), color: '#ffffff' });
+  const poll = el('div', 'abs', s.el, `<div style="font:700 24px Inter;color:#111;text-align:center;margin-bottom:14px">E AÍ?</div>
+    <div style="height:62px;border-radius:14px;background:#eee;margin-bottom:10px;font:700 26px/62px Inter;padding-left:20px">SIM</div>
+    <div style="height:62px;border-radius:14px;background:#eee;font:700 26px/62px Inter;padding-left:20px">NÃO</div>`);
+  poll.style.cssText = 'left:160px;top:720px;width:400px;padding:22px;background:#fff;border-radius:22px;box-shadow:0 20px 50px rgba(0,0,0,.6)';
+  s.updates.push(t => { const p = pop(t, ws(N) + 0.3, 0.4); poll.style.transform = `scale(${p}) rotate(-2deg)`; poll.style.opacity = t > ws(N) + 0.3 ? 1 : 0; });
+}
+
+finalize({ duration: DUR, grain: 0.08, vignette: 0.5, flashes: [[C2, 0.15], [C4, 0.15]] });
+</script>
+</body></html>
