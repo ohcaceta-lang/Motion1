@@ -1,0 +1,188 @@
+<!doctype html>
+<html><head><meta charset="utf-8"></head>
+<body>
+<script src="assets/words.js"></script>
+<script src="lib.js"></script>
+<script>
+const COR = '#e3141b', AMA = '#ffd400', CLARO = '#f4efe6', VERDE = '#7cfc9a';
+const A = 'assets/';
+const N = window.WORDS.length - 1;
+const W = FONTS.sans(50, 700);
+const cut = i => ws(i) - 0.12;
+const C1 = 0, C2 = cut(9), C3 = cut(15), C4 = cut(26), C5 = cut(46), C6 = cut(56), C7 = cut(77), C8 = cut(88), C9 = cut(103);
+const DUR = Math.ceil((we(N) + 2.0) * 10) / 10;
+const BIGR = { font: FONTS.caps(150), color: COR, glow: 'rgba(227,20,27,.55)', from: '#3a0608' };
+
+function badge(s, html, x, y, t0, css = '') {
+  const b = el('div', 'abs', s.el, html);
+  b.style.cssText = `left:${x}px;top:${y}px;white-space:nowrap;font:800 26px Inter;letter-spacing:.06em;color:#ffffff;background:${COR};padding:8px 18px;border-radius:6px;opacity:0;${css}`;
+  s.updates.push(t => { const p = pop(t, t0, 0.35); b.style.opacity = t >= t0 ? 1 : 0; b.style.transform = `translate(-50%,-50%) scale(${p})`; });
+  return b;
+}
+function stamp(s, txt, x, y, t0, rot = -8, size = 64, col = COR) {
+  const st = el('div', 'abs', s.el, txt);
+  st.style.cssText = `left:${x}px;top:${y}px;white-space:nowrap;font:400 ${size}px Anton;color:${col};border:6px solid ${col};padding:2px 22px;filter:url(#rough);opacity:0`;
+  st.setAttribute('data-evitar', 'carimbo');
+  s.updates.push(t => { const q = prog(t, t0, t0 + 0.18); st.style.opacity = t >= t0 ? 0.95 : 0;
+    st.style.transform = `translate(-50%,-50%) rotate(${rot}deg) scale(${t >= t0 ? lerp(2.2, 1, easeOutExpo(q)) : 0})`; });
+  return st;
+}
+function credit(s, txt) { const c = el('div', 'abs', s.el, txt); c.style.cssText = 'right:24px;bottom:22px;font:500 17px Inter;color:rgba(255,255,255,.8);white-space:nowrap;text-shadow:0 1px 3px #000'; }
+
+/* 1 — gancho */
+{
+  const s = scene(C1, C2, '#000', 0.015);
+  bg(s, A + 'ponto.jpg', { z0: 1.25, z1: 1.05, filter: 'brightness(.45) contrast(1.2) saturate(.7)' });
+  shade(s, 'background:radial-gradient(ellipse at 50% 45%, rgba(0,0,0,.15), rgba(0,0,0,.85))');
+  badge(s, '● URGENTE', 360, 240, 0.0);
+  seq(s, 360, 420, 0, 1, { font: W });
+  line(s, 360, 600, [['6x1', ws(2) - 0.04, { font: FONTS.caps(260), color: COR, glow: 'rgba(227,20,27,.6)', from: '#3a0608' }]]);
+  seq(s, 360, 790, 5, 6, { font: W });
+  seq(s, 360, 900, 7, 8, { font: W }, { 8: { font: FONTS.serif(96), color: AMA, from: '#3a3000' } });
+  const bar = el('div', 'abs', s.el); bar.style.cssText = `left:150px;top:640px;height:22px;width:420px;background:${CLARO};transform-origin:0 50%;box-shadow:0 4px 20px rgba(0,0,0,.6)`;
+  s.updates.push(t => { const p = easeOutExpo(prog(t, ws(8), ws(8) + 0.35)); bar.style.transform = `rotate(-10deg) scaleX(${p})`; });
+}
+
+/* 2 — Supremo não deixou adiar */
+{
+  const s = scene(C2, C3, '#000', 0.02);
+  bg(s, A + 'stf.jpg', { z0: 1.05, z1: 1.2, filter: 'brightness(.5) contrast(1.1)' });
+  shade(s, 'background:linear-gradient(180deg, rgba(0,0,0,.2), rgba(0,0,0,.85) 70%)');
+  seq(s, 360, 380, 9, 11, { font: W }, { 11: { font: FONTS.serif(100), color: CLARO } });
+  seq(s, 360, 540, 12, 13, { font: FONTS.caps(110), color: '#ffffff' });
+  seq(s, 360, 720, 14, 14, BIGR);
+  stamp(s, 'ADIAMENTO NEGADO', 360, 960, we(14) - 0.05, -7, 60);
+}
+
+/* 3 — Dino nega pedido */
+{
+  const s = scene(C3, C4, 'radial-gradient(ellipse at 50% 30%, #2a1416 0%, #070404 75%)', 0.012);
+  const pol = el('div', 'abs', s.el, `<img src="${A}foto_dino.jpg" style="width:520px;height:340px;object-fit:cover;object-position:60% 30%;display:block"><div style="font:400 40px Anton;color:#111111;text-align:center;margin-top:10px;letter-spacing:.02em;white-space:nowrap">FLÁVIO DINO · STF</div>`);
+  pol.style.cssText = 'left:360px;top:400px;background:#ffffff;padding:16px 16px 16px;box-shadow:0 30px 60px rgba(0,0,0,.7)';
+  pol.setAttribute('data-evitar', 'foto');
+  s.updates.push(t => { const p = pop(t, s.start + 0.05, 0.5); pol.style.transform = `translate(-50%,-50%) rotate(${lerp(-9, -3, easeOut(prog(t, s.start, s.start + 0.6)))}deg) scale(${p})`; });
+  badge(s, 'QUINTA · 12/11', 360, 130, ws(15));
+  seq(s, 360, 760, 17, 20, { font: FONTS.sans(46, 700) }, { 19: { color: AMA }, 20: { color: AMA } });
+  seq(s, 360, 880, 21, 23, { font: W }, { 21: { font: FONTS.caps(110), color: COR, glow: 'rgba(227,20,27,.5)', from: '#3a0608' } });
+  seq(s, 360, 1010, 24, 25, { font: W }, { 25: { font: FONTS.serif(80), color: CLARO } });
+  credit(s, 'Foto: Luiz Silveira/STF');
+}
+
+/* 4 — 16 de dezembro, 44h -> 42h */
+{
+  const s = scene(C4, C5, '#000', 0.012);
+  bg(s, A + 'calendario.jpg', { z0: 1.1, z1: 1.25, filter: 'brightness(.35) contrast(1.1)', origin: '60% 60%' });
+  shade(s, 'background:rgba(0,0,0,.35)');
+  seq(s, 360, 200, 26, 28, { font: FONTS.sans(46, 700), outAt: ws(32) - 0.05 });
+  line(s, 360, 320, [['16', ws(29) - 0.04, { font: FONTS.caps(120), color: AMA }], ['DE DEZEMBRO', ws(30) - 0.04, { font: FONTS.caps(90), color: '#ffffff' }]], { outAt: ws(32) - 0.05 });
+  seq(s, 360, 260, 32, 34, { font: FONTS.sans(56, 700) }, { 34: { color: COR } });
+  const num = el('div', 'abs', s.el); num.style.cssText = `left:360px;top:620px;font:400 330px/1 Anton;color:${CLARO};white-space:nowrap;text-shadow:0 10px 40px rgba(0,0,0,.7)`;
+  num.setAttribute('data-evitar', 'contador');
+  s.updates.push(t => {
+    const p = easeInOut(prog(t, ws(40), ws(42)));
+    const v = Math.round(lerp(44, 42, p));
+    num.innerHTML = v + '<span style="font-size:150px">h</span>';
+    num.style.color = p >= 1 ? AMA : CLARO;
+    num.style.opacity = t >= ws(36) - 0.05 ? 1 : 0;
+    const k = pop(t, ws(36) - 0.05, 0.4), b = t >= ws(42) ? 1 + 0.12 * (1 - easeOut(prog(t, ws(42), ws(42) + 0.3))) : 1;
+    num.style.transform = `translate(-50%,-50%) scale(${k * b})`;
+  });
+  seq(s, 360, 900, 43, 45, { font: FONTS.sans(52, 700) }, { 45: { color: AMA } });
+  stamp(s, 'A PARTIR DE 16/12', 360, 1060, ws(45) + 0.2, -5, 52, AMA);
+}
+
+/* 5 — folga e salário */
+{
+  const s = scene(C5, C6, '#000', 0.015);
+  bg(s, A + 'praia.jpg', { z0: 1.05, z1: 1.18, filter: 'brightness(.5) saturate(1.1)' });
+  shade(s, 'background:linear-gradient(180deg, rgba(0,0,0,.65), rgba(0,0,0,.3) 50%, rgba(0,0,0,.75))');
+  const chk = (y, t0) => { const c = el('img', 'abs', s.el); c.src = tw('2705'); c.style.cssText = `left:360px;top:${y}px;width:90px;height:90px`;
+    s.updates.push(t => { c.style.opacity = t >= t0 ? 1 : 0; c.style.transform = `translate(-50%,-50%) scale(${pop(t, t0, 0.4)})`; }); };
+  chk(200, ws(47));
+  seq(s, 360, 330, 46, 48, { font: W });
+  line(s, 360, 460, [['de', ws(49) - 0.04, { font: W }], ['FOLGA', ws(50) - 0.04, { font: FONTS.caps(120), color: AMA, glow: 'rgba(255,212,0,.4)' }]]);
+  chk(720, ws(52));
+  seq(s, 360, 850, 51, 53, { font: W });
+  line(s, 360, 980, [['de', ws(54) - 0.04, { font: W }], ['SALÁRIO', ws(55) - 0.04, { font: FONTS.caps(120), color: VERDE, glow: 'rgba(124,252,154,.35)' }]]);
+}
+
+/* 6 — o detalhe: 8h24 sem hora extra */
+{
+  const s = scene(C6, C7, '#000', 0.01);
+  bg(s, A + 'caixa.jpg', { z0: 1.15, z1: 1.0, filter: 'brightness(.3) contrast(1.15) saturate(.6)' });
+  shade(s, 'background:rgba(10,0,0,.35)');
+  seq(s, 360, 170, 56, 58, { font: FONTS.sans(46, 700) });
+  seq(s, 360, 280, 59, 59, { font: FONTS.serif(96), color: COR, glow: 'rgba(227,20,27,.5)', from: '#3a0608' });
+  seq(s, 360, 420, 60, 62, { font: FONTS.sans(46, 700) });
+  seq(s, 360, 500, 63, 64, { font: FONTS.sans(46, 700) });
+  const clk = el('div', 'abs', s.el); clk.style.cssText = `left:360px;top:700px;font:400 260px/1 Anton;color:#ffffff;white-space:nowrap;text-shadow:0 10px 40px rgba(0,0,0,.8)`;
+  clk.setAttribute('data-evitar', 'relogio');
+  s.updates.push(t => {
+    const m = Math.round(24 * easeOut(prog(t, ws(68), we(71))));
+    clk.innerHTML = '8h' + String(m).padStart(2, '0');
+    clk.style.color = m === 24 ? AMA : '#ffffff';
+    clk.style.opacity = t >= ws(65) - 0.05 ? 1 : 0;
+    clk.style.transform = `translate(-50%,-50%) scale(${pop(t, ws(65) - 0.05, 0.4)})`;
+  });
+  seq(s, 360, 900, 72, 73, { font: W });
+  stamp(s, 'SEM HORA EXTRA', 360, 1050, ws(74), -6, 70);
+}
+
+/* 7 — plenário vota hoje */
+{
+  const s = scene(C7, C8, '#000', 0.02);
+  bg(s, A + 'martelo.jpg', { z0: 1.2, z1: 1.05, filter: 'brightness(.45) contrast(1.15)' });
+  shade(s, 'background:linear-gradient(180deg, rgba(0,0,0,.75), rgba(0,0,0,.2) 55%, rgba(0,0,0,.8))');
+  badge(s, '● HOJE · 13/11 · PLENÁRIO VIRTUAL', 360, 160, ws(78));
+  seq(s, 360, 330, 77, 78, { font: FONTS.serif(100), color: AMA, from: '#3a3000' });
+  seq(s, 360, 470, 79, 82, { font: W }, { 82: { font: FONTS.caps(80), color: '#ffffff' } });
+  seq(s, 360, 880, 83, 84, { font: W });
+  seq(s, 360, 1020, 85, 85, BIGR);
+  seq(s, 360, 1160, 86, 87, { font: FONTS.sans(46, 700) });
+}
+
+/* 8 — linha do tempo até 40h */
+{
+  const s = scene(C8, C9, 'radial-gradient(ellipse at 50% 40%, #1d1012 0%, #050303 75%)', 0.012);
+  seq(s, 360, 200, 88, 90, { font: W });
+  line(s, 360, 340, [['2027', ws(91) - 0.04, { font: FONTS.caps(150), color: '#ffffff' }]]);
+  seq(s, 360, 520, 97, 100, { font: W });
+  line(s, 360, 660, [['40', ws(101) - 0.04, { font: FONTS.caps(160), color: VERDE, glow: 'rgba(124,252,154,.4)' }], ['HORAS', ws(102) - 0.04, { font: FONTS.caps(110), color: '#ffffff' }]]);
+  const tl = el('div', 'abs', s.el); tl.style.cssText = 'left:60px;top:900px;width:600px;height:220px';
+  tl.setAttribute('data-evitar', 'linha do tempo');
+  const pts = [['44h', 'HOJE', '#999999'], ['42h', '16/12/26', AMA], ['40h', 'DEZ/27', VERDE]];
+  tl.innerHTML = `<div id="tlbar" style="position:absolute;left:60px;top:40px;height:8px;width:480px;background:#ffffff;transform-origin:0 50%"></div>` +
+    pts.map((p, i) => `<div class="tlp" style="position:absolute;left:${60 + i * 240}px;top:22px;text-align:center">
+      <div style="width:34px;height:34px;border-radius:50%;background:${p[2]};margin:0 auto;box-shadow:0 0 20px ${p[2]}"></div>
+      <div style="font:400 60px Anton;color:${p[2]};margin-top:12px">${p[0]}</div>
+      <div style="font:700 22px Inter;color:#dddddd;white-space:nowrap">${p[1]}</div></div>`).join('');
+  s.updates.push(t => {
+    tl.querySelector('#tlbar').style.transform = `scaleX(${easeInOut(prog(t, s.start + 0.3, ws(101)))})`;
+    tl.querySelectorAll('.tlp').forEach((d, i) => { const t0 = [s.start + 0.3, ws(94), ws(101)][i]; d.style.opacity = t >= t0 ? 1 : 0;
+      d.style.transform = `translateX(-50%) scale(${pop(t, t0, 0.4)})`; });
+  });
+}
+
+/* 9 — CTA */
+{
+  const s = scene(C9, DUR, 'radial-gradient(ellipse at 50% 45%, #2a1012 0%, #050303 70%)', 0.01);
+  seq(s, 360, 150, 103, 104, { font: FONTS.serif(110), color: AMA, from: '#3a3000' });
+  seq(s, 360, 290, 105, 106, { font: W });
+  line(s, 360, 400, [['24', ws(107) - 0.04, { font: FONTS.caps(100), color: COR }], ['minutos', ws(110) - 0.04, { font: W }]]);
+  seq(s, 360, 510, 111, 113, { font: W });
+  seq(s, 360, 620, 114, 116, { font: W }, { 116: { font: FONTS.caps(90), color: VERDE } });
+  const poll = el('div', 'abs', s.el, `<div style="font:800 24px Inter;color:#111111;text-align:center;margin-bottom:14px">VALE A TROCA?</div>
+    <div style="height:64px;border-radius:14px;background:#e9f9ec;margin-bottom:10px;font:800 28px/64px Inter;padding-left:22px;color:#111111">👍 SIM, QUERO 2 FOLGAS</div>
+    <div style="height:64px;border-radius:14px;background:#fde8e8;font:800 28px/64px Inter;padding-left:22px;color:#111111">👎 NÃO, PREFIRO 8 HORAS</div>`);
+  poll.style.cssText = 'left:360px;top:890px;width:520px;padding:22px;background:#ffffff;border-radius:22px;box-shadow:0 20px 50px rgba(0,0,0,.6);white-space:nowrap';
+  poll.setAttribute('data-evitar', 'enquete');
+  s.updates.push(t => { const t0 = we(116) + 0.05; poll.style.transform = `translate(-50%,-50%) scale(${pop(t, t0, 0.4)}) rotate(-2deg)`; poll.style.opacity = t > t0 ? 1 : 0; });
+  const cm = el('div', 'abs', s.el, '💬 Comenta aqui 👇');
+  cm.style.cssText = `left:360px;top:1140px;white-space:nowrap;font:800 38px Inter;color:#ffffff;background:${COR};padding:14px 30px;border-radius:40px;opacity:0`;
+  s.updates.push(t => { const t0 = ws(117) - 0.04; cm.style.opacity = t >= t0 ? 1 : 0; cm.style.transform = `translate(-50%,-50%) scale(${pop(t, t0, 0.4) * (1 + 0.04 * Math.sin(t * 8))})`; });
+}
+
+finalize({ duration: DUR, grain: 0.08, vignette: 0.5,
+  flashes: [[C2, 0.15, '227,20,27'], [C3, 0.12], [C4, 0.12], [C5, 0.12], [C6, 0.15, '227,20,27'], [C7, 0.12], [C8, 0.12], [C9, 0.15, '227,20,27']] });
+</script>
+</body></html>
