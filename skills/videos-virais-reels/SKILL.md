@@ -49,8 +49,24 @@ Trabalhe dentro dessa pasta. Os arquivos gerados vão para `assets/`.
   com pessoas reais, alegação é "suposta" ou "segundo o jornal".
 - **Assunto público = fotos reais das figuras públicas envolvidas (preferência do usuário).** Veja a seção abaixo.
 
-### 3. Roteiro (30–45 s, 80–110 palavras)
+### 3. Roteiro (padrão 30–45 s, 80–110 palavras; pode ser mais longo quando o tema pedir)
 Gancho → contexto → 2 ou 3 fatos concretos → virada → CTA em pergunta. Frases curtas e números por extenso.
+
+**Vídeos mais longos e explicativos são permitidos quando necessário** (decisão sua, sem perguntar ao usuário):
+quando o tema tem passo a passo, história com várias etapas, conceito que precisa de exemplos ou muitos fatos
+que não cabem em 45 s sem ficar raso ou corrido. Nesses casos:
+- **Formato explicativo: 60–90 s (160–230 palavras)**; até ~3 min (cerca de 450 palavras) se o conteúdo realmente exigir.
+  Não estique: se dá para contar bem em 45 s, faça 45 s.
+- Estrutura em **capítulos**: gancho forte (0–3 s) → promessa ("vou te mostrar 3 motivos…") → blocos de 15–25 s,
+  cada um com mini-título/número na tela → recapitulação curta → CTA. Uma ideia por cena, como sempre.
+- **Retenção:** um "gancho de continuidade" a cada 15–20 s ("mas o mais curioso vem agora…"), troca de cenário ou
+  de estilo de cena a cada capítulo e barra de progresso discreta ou numeração de capítulos.
+- Use os formatos explicativos das referências (canvas infinito com câmera contínua, lousa, livro grifado,
+  personagem fixo passo a passo; ver `references/referencias-pinterest.md`).
+- Técnico: `audio_timing_get` exige paginação (`offset`) acima de 100 palavras; a música do banco entra em loop
+  com crossfade pelo `mixar.py`; com muitas cenas, gere as imagens em lotes de até 8 e faça a prévia (passo 8)
+  por capítulo. O custo sobe com a narração e as imagens: confira com `simulate_cost` e informe no final.
+- Avise na entrega por que o vídeo ficou mais longo, e sugira uma versão curta (corte de 30–45 s) para Reels se fizer sentido.
 Escolha o estilo em `references/estilos.md` e a voz em `references/pikaso.md`.
 
 ### 4. Pikaso (sempre o menor custo)
@@ -184,6 +200,7 @@ esporte, crimes noticiados), use fotos reais de cada figura central. Isso torna 
 
 ## Preferências do usuário (lembre-se)
 - Entrega finalizada, sem perguntas intermediárias desnecessárias.
+- Duração livre quando necessário: vídeos mais longos e explicativos (60–90 s, até ~3 min) são permitidos se o tema pedir.
 - Sempre efeitos sonoros **e** música de fundo combinando com o tema. **Música do banco de músicas, não gerada.**
 - Pikaso no menor custo (ou no ilimitado, se um dia aparecer como ilimitado no `simulate_cost`).
 - Voz Caio Nogueira reprovada. Camila Rocha aprovada (também funciona bem em notícia/escândalo). Joana Cordeiro fala devagar: com ela, o roteiro de cerca de 110 palavras deu 68 s.

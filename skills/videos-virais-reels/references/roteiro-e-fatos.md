@@ -24,7 +24,7 @@
 - Imagens: em assunto público, use **fotos reais** das figuras públicas, com crédito na tela (ver SKILL.md, seção "Fotos reais"). Nunca gere pessoas reais com IA. Sem fotos de menores nem de vítimas.
 - Política e eleições: só fatos verificáveis. Nada de inventar falas, e o mesmo rigor para todos os lados.
 
-## Estrutura do roteiro (30–45 s, 80–110 palavras)
+## Estrutura do roteiro (padrão 30–45 s, 80–110 palavras; explicativo 60–90 s ou mais, ver SKILL.md passo 3)
 1. **Gancho (0–3 s):** uma frase curta e forte ("Um dia.", "Eles trocaram a cidade grande… por isso aqui.").
 2. **Contexto:** quem, quando e onde (nomes, data, lugar).
 3. **Desenvolvimento:** 2 ou 3 fatos com número ou imagem concreta (cada fato vira uma cena).
