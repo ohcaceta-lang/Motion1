@@ -1,0 +1,249 @@
+<!doctype html>
+<html><head><meta charset="utf-8"></head>
+<body>
+<script src="assets/words.js"></script>
+<script src="lib.js"></script>
+<script>
+/* Mpox no Rio — ref.: vender-sem-palavras-insiderforce
+   "canvas infinito" cinza-claro com grade: a câmera desliza de uma estação para a outra (pan com motion blur, sem
+   cortes), objetos 3D em P&B com sombra suave, vocabulário de diagrama (caixas e conectores tracejados, círculos
+   finos, bullets, gráfico de barras), uma só fonte (Inter) alternando peso/tamanho, um único acento vermelho e um
+   único corte seco para o CTA em branco com botão + cursor clicando. */
+const A = 'assets/';
+const N = window.WORDS.length - 1;
+const cut = i => ws(i) - 0.12;
+const C = [0, cut(17), cut(33), cut(43), cut(54), cut(70), cut(80), cut(89), cut(98), cut(103)];
+const DUR = Math.ceil((we(N) + 2.0) * 10) / 10;
+C.push(DUR);
+const S = k => [C[k], C[k + 1]];
+const BG = '#ececec', INK = '#141414', CINZA = '#8a8a8a', RED = '#d7263d', FROM = '#d4d4d4';
+stage.style.background = BG;
+
+/* direções do "pan" de câmera de cada estação (de onde a câmera vem) */
+const PAN = [[0, 0], [0, 1], [1, 0], [0, 1], [-1, 0], [0, 1], [1, 0], [0, 1], [-1, 0]];
+let camX = 0, camY = 0; const camPos = []; PAN.forEach(([x, y]) => { camX += x * 720; camY += y * 1280; camPos.push([camX, camY]); });
+
+function estacao(k) {
+  const s = scene(...S(k), BG, 0.012);
+  const grid = shade(s, 'background-image:linear-gradient(rgba(0,0,0,.06) 1px,transparent 1px),linear-gradient(90deg,rgba(0,0,0,.06) 1px,transparent 1px);background-size:48px 48px');
+  shade(s, 'background:radial-gradient(ellipse at 50% 45%, rgba(255,255,255,.55), rgba(0,0,0,.06) 80%)');
+  const [dx, dy] = PAN[k] || [0, 0];
+  s.updates.push(t => {
+    const p = prog(t, s.start, s.start + 0.42), e = easeOutExpo(p);
+    const [cx, cy] = camPos[k] || [0, 0];
+    grid.style.backgroundPosition = `${-(cx - dx * 720 * (1 - e)) % 48}px ${-(cy - dy * 1280 * (1 - e)) % 48}px`;
+    if (p < 1 && (dx || dy)) { s.el.style.transform += ` translate(${dx * 620 * (1 - e)}px, ${dy * 900 * (1 - e)}px)`; s.el.style.filter = `blur(${(1 - e) * 12}px)`; }
+  });
+  const wm = el('div', 'abs', s.el, 'Fontes: SES-RJ · Ministério da Saúde · Obs. Epidemiológico do Rio');
+  wm.style.cssText = 'left:0;right:0;bottom:30px;text-align:center;white-space:nowrap;font:500 15px Inter;color:rgba(0,0,0,.35)';
+  return s;
+}
+/* objeto 3D P&B "recortado" (borda esfumada + multiply), entrando com overshoot e flutuando */
+function objeto(s, src, x, y, w, h, t0, o = {}) {
+  const d = el('div', 'abs', s.el, `<img src="${src}" style="width:${w}px;height:${h}px;object-fit:cover;display:block;mix-blend-mode:multiply;filter:grayscale(1) contrast(${o.c || 1.15}) brightness(${o.b || 1.06});-webkit-mask-image:radial-gradient(ellipse 50% 50% at 50% 50%, #000 55%, transparent 75%)">`);
+  d.style.cssText = `left:${x}px;top:${y}px;opacity:0`;
+  s.updates.push(t => { const p = prog(t, t0, t0 + 0.6), e = backOut(p); d.style.opacity = clamp(p * 2);
+    d.style.transform = `translate(-50%,-50%) translateY(${(1 - e) * (o.dy ?? 120) + Math.sin(t * 1.6) * 6}px) rotate(${(o.rot || 0) + Math.sin(t * 0.9) * 2}deg) scale(${lerp(0.7, 1, e)})`; });
+  return d;
+}
+function desenha(s, inner, t0, d = 0.6) {          // traço/tracejado que se desenha
+  const box = el('div', 'abs', s.el, `<svg width="720" height="1280" viewBox="0 0 720 1280">${inner}</svg>`); box.style.cssText = 'left:0;top:0';
+  const ps = [...box.querySelectorAll('path,circle,line,polyline,rect,ellipse')];
+  ps.forEach(p => { const L = p.getTotalLength(); p.dataset.L = L; if (!p.getAttribute('stroke-dasharray')) { p.style.strokeDasharray = L; p.style.strokeDashoffset = L; } else p.style.opacity = 0; });
+  s.updates.push(t => ps.forEach((p, k) => { const q = easeInOut(prog(t, t0 + k * 0.1, t0 + k * 0.1 + d));
+    if (p.getAttribute('stroke-dasharray')) p.style.opacity = q; else p.style.strokeDashoffset = p.dataset.L * (1 - q); }));
+  return box;
+}
+function rotulo(s, txt, x, y, t0, o = {}) {        // etiqueta em caixa tracejada
+  const r = el('div', 'abs', s.el, txt);
+  r.style.cssText = `left:${x}px;top:${y}px;white-space:nowrap;font:${o.w || 600} ${o.px || 24}px Inter;color:${o.cor || INK};border:2px dashed #9a9a9a;padding:6px 14px;background:rgba(255,255,255,.55);opacity:0`;
+  s.updates.push(t => { const p = prog(t, t0, t0 + 0.3); r.style.opacity = p; r.style.transform = `translate(-50%,-50%) scale(${lerp(0.8, 1, easeOutExpo(p))})`; });
+  return r;
+}
+function contador(s, alvo, t0, t1, px = 230, cor = INK) {
+  const d = el('div', 'abs', s.el); d.setAttribute('data-evitar', 'numero');
+  d.style.cssText = `left:360px;white-space:nowrap;font:900 ${px}px/1 Inter;letter-spacing:-.05em;color:${cor}`;
+  s.updates.push(t => { d.textContent = Math.round(alvo * easeOut(prog(t, t0, t1))); d.style.opacity = t >= t0 ? 1 : 0; d.style.transform = 'translate(-50%,-50%)'; });
+  return d;
+}
+const fin = (px = 48) => ({ font: FONTS.sans(px, 500), color: CINZA, from: FROM });
+const fort = (px = 64, cor = INK) => ({ font: FONTS.sans(px, 800), color: cor, from: FROM });
+const L = (txt, i, f) => [txt, ws(i) - 0.04, f];
+
+/* 1 — o vírus: "a primeira MORTE por [mpox]" */
+{
+  const s = estacao(0);
+  objeto(s, A + 'virus.jpg', 360, 330, 360, 640, 0.05, { dy: 160 });
+  desenha(s, `<circle cx="360" cy="330" r="200" fill="none" stroke="#9a9a9a" stroke-width="2"/>`, 0.3, 0.9);
+  const b = bloco(s, 800, [
+    { seq: [0, 2, { ...fin(50), color: '#555555' }] },
+    { seq: [3, 5, fin(50), { 5: { font: FONTS.sans(100, 900), color: RED } }] },
+    { seq: [6, 7, fin(50), { 7: fort(80) }] },
+    { line: [[L('do', 8, fin(50)), L('Brasil', 9, fin(50)), L('em', 10, fin(50)), L('2026', 11, fort(50))]] },
+  ]);
+  const mp = b[2].items[1].sp; mp.style.border = '3px dashed #9a9a9a'; mp.style.padding = '0 14px';
+}
+
+/* 2 — a vítima: ícone em traço dentro do círculo, etiquetas tracejadas */
+{
+  const s = estacao(1);
+  desenha(s, `<circle cx="360" cy="320" r="150" fill="none" stroke="#9a9a9a" stroke-width="2"/>
+    <circle cx="360" cy="270" r="48" fill="none" stroke="${INK}" stroke-width="5"/>
+    <path d="M270 400 Q 270 330 360 330 Q 450 330 450 400" fill="none" stroke="${INK}" stroke-width="5" stroke-linecap="round"/>
+    <line x1="490" y1="250" x2="560" y2="200" stroke="#9a9a9a" stroke-width="2" stroke-dasharray="6 6"/>
+    <line x1="230" y1="400" x2="160" y2="450" stroke="#9a9a9a" stroke-width="2" stroke-dasharray="6 6"/>`, s.start + 0.3, 0.6);
+  rotulo(s, '40–49 anos', 580, 182, ws(23));
+  rotulo(s, 'imunidade ↓', 150, 470, ws(31));
+  bloco(s, 790, [
+    { seq: [17, 19, fin(48)] },
+    { seq: [20, 21, fort(64)] },
+    { line: [[L('de', 22, fin(48)), L('40 a 49', 23, fort(88)), L('anos', 28, fin(48))]] },
+    { seq: [29, 31, fin(48)] },
+    { seq: [32, 32, fort(64)] },
+  ]);
+}
+
+/* 3 — 74 casos em 2 meses: contador + linha do tempo tracejada */
+{
+  const s = estacao(2);
+  const n = contador(s, 74, ws(36), we(38));
+  const b = bloco(s, 610, [
+    { seq: [33, 35, fin(50)] },
+    { el: n, h: 250 },
+    { seq: [39, 40, fin(50)] },
+    { line: [[L('2', 41, fort(96)), L('meses', 42, fort(96))]] },
+  ]);
+  desenha(s, `<line x1="160" y1="960" x2="560" y2="960" stroke="#9a9a9a" stroke-width="3" stroke-dasharray="8 8"/>
+    <circle cx="160" cy="960" r="10" fill="${INK}"/><circle cx="360" cy="960" r="10" fill="${INK}"/><circle cx="560" cy="960" r="10" fill="${RED}"/>`, ws(41), 0.5);
+  const lb = el('div', 'abs', s.el, '<span>set</span><span>out</span><span>nov</span>');
+  lb.style.cssText = 'left:120px;width:480px;top:985px;display:flex;justify-content:space-between;font:600 22px Inter;color:#777;opacity:0';
+  s.updates.push(t => lb.style.opacity = prog(t, ws(41) + 0.3, ws(41) + 0.6));
+}
+
+/* 4 — gráfico de barras 10 × 74 e o "7×" */
+{
+  const s = estacao(3);
+  const ch = el('div', 'abs', s.el, `
+    <div style="position:absolute;left:0;right:0;bottom:0;border-top:3px solid ${INK}"></div>
+    <div id="b1" style="position:absolute;left:70px;bottom:3px;width:120px;height:0;background:#bdbdbd"></div>
+    <div id="b2" style="position:absolute;left:290px;bottom:3px;width:120px;height:0;background:${INK}"></div>
+    <div id="v1" style="position:absolute;left:70px;width:120px;text-align:center;font:800 34px Inter;color:#777">10</div>
+    <div id="v2" style="position:absolute;left:290px;width:120px;text-align:center;font:800 34px Inter;color:${INK}">74</div>
+    <div style="position:absolute;left:70px;width:120px;top:342px;text-align:center;font:600 22px Inter;color:#777">2025</div>
+    <div style="position:absolute;left:290px;width:120px;top:342px;text-align:center;font:600 22px Inter;color:${INK}">2026</div>`);
+  ch.setAttribute('data-evitar', 'grafico');
+  ch.style.cssText = 'left:120px;top:160px;width:480px;height:330px';
+  const b1 = ch.querySelector('#b1'), b2 = ch.querySelector('#b2'), v1 = ch.querySelector('#v1'), v2 = ch.querySelector('#v2');
+  const badge = el('div', 'abs', s.el, '×7'); badge.style.cssText = `left:560px;top:200px;white-space:nowrap;font:900 54px Inter;color:#fff;background:${RED};border-radius:40px;padding:4px 22px;opacity:0`;
+  s.updates.push(t => { const h2 = 290 * easeOutExpo(prog(t, s.start + 0.3, s.start + 1.0)), h1 = 39 * easeOutExpo(prog(t, ws(44), ws(44) + 0.5));
+    b2.style.height = h2 + 'px'; b1.style.height = h1 + 'px'; v2.style.bottom = (h2 + 10) + 'px'; v1.style.bottom = (h1 + 10) + 'px';
+    v2.style.opacity = h2 > 5 ? 1 : 0; v1.style.opacity = h1 > 5 ? 1 : 0;
+    const p = pop(t, ws(51), 0.4); badge.style.opacity = t > ws(51) ? 1 : 0; badge.style.transform = `translate(-50%,-50%) scale(${p}) rotate(-8deg)`; });
+  desenha(s, `<path d="M250 420 Q 330 300 410 250" fill="none" stroke="${RED}" stroke-width="4" stroke-linecap="round" stroke-dasharray="1"/>`, ws(51), 0.4);
+  bloco(s, 800, [
+    { line: [[L('contra', 43, fin(50)), L('10', 44, fort(84))]] },
+    { seq: [45, 47, fin(50)] },
+    { seq: [48, 50, fin(50)] },
+    { line: [[L('7', 51, { font: FONTS.sans(130, 900), color: RED, from: FROM }), L('vezes', 52, fort(64)), L('mais', 53, fort(64))]] },
+  ]);
+}
+
+/* 5 — 382 no estado, mil no país: contador + conectores tracejados */
+{
+  const s = estacao(4);
+  const n = contador(s, 382, ws(58), we(62), 210);
+  bloco(s, 620, [
+    { seq: [54, 57, fin(48)] },
+    { el: n, h: 230 },
+    { seq: [63, 63, fort(56)] },
+    { seq: [64, 67, fin(48)] },
+    { line: [[L('de', 68, fin(48)), L('mil', 69, { font: FONTS.sans(110, 900), color: INK, from: FROM })]] },
+  ]);
+  s.words[s.words.length - 1].items[1].sp.textContent = 'MIL';
+  rotulo(s, 'RJ', 110, 520, ws(58));
+  rotulo(s, 'BRASIL', 600, 900, ws(66));
+  desenha(s, `<path d="M110 545 Q 110 700 180 760" fill="none" stroke="#9a9a9a" stroke-width="2" stroke-dasharray="6 6"/>
+    <path d="M600 875 Q 620 800 560 760" fill="none" stroke="#9a9a9a" stroke-width="2" stroke-dasharray="6 6"/>`, ws(64), 0.5);
+}
+
+/* 6 — como passa: contato direto (mapa mental) */
+{
+  const s = estacao(5);
+  const ic = el('img', 'abs', s.el); ic.src = tw('1f91d'); ic.style.cssText = 'left:360px;top:340px;width:170px;filter:grayscale(1) contrast(1.3) drop-shadow(0 18px 18px rgba(0,0,0,.25));opacity:0';
+  s.updates.push(t => { const p = pop(t, ws(74), 0.45); ic.style.opacity = t > ws(74) ? 1 : 0; ic.style.transform = `translate(-50%,-50%) scale(${p}) rotate(${Math.sin(t * 2) * 4}deg)`; });
+  desenha(s, `<circle cx="360" cy="340" r="130" fill="none" stroke="#9a9a9a" stroke-width="2"/>
+    <line x1="360" y1="470" x2="360" y2="560" stroke="#9a9a9a" stroke-width="2" stroke-dasharray="6 6"/>
+    <line x1="250" y1="270" x2="150" y2="200" stroke="#9a9a9a" stroke-width="2" stroke-dasharray="6 6"/>
+    <line x1="470" y1="270" x2="570" y2="200" stroke="#9a9a9a" stroke-width="2" stroke-dasharray="6 6"/>`, s.start + 0.3, 0.6);
+  rotulo(s, 'pele', 140, 180, ws(77) + 0.1); rotulo(s, 'lesões', 580, 180, ws(77) + 0.2);
+  bloco(s, 740, [
+    { seq: [70, 72, fin(50)] },
+    { seq: [73, 74, fin(50), { 74: fort(96) }] },
+    { seq: [75, 76, fin(50)] },
+    { seq: [77, 79, fort(62)] },
+  ]);
+}
+
+/* 7 — objetos: toalhas e roupa de cama, lista em caixas tracejadas */
+{
+  const s = estacao(6);
+  objeto(s, A + 'toalhas.jpg', 360, 300, 300, 520, s.start + 0.2, { dy: 120, b: 1.3, c: 1.35 });
+  const b = bloco(s, 800, [
+    { seq: [80, 80, fort(56)] },
+    { seq: [81, 82, fin(50), { 82: fort(56) }] },
+    { seq: [83, 84, fin(50), { 84: fort(80) }] },
+    { seq: [85, 88, fin(50), { 86: fort(56), 88: fort(56) }] },
+  ], { lh: 1.42 });
+  [b[0].items[0], b[1].items[1], b[2].items[1]].forEach(it => { it.sp.style.border = '3px dashed #9a9a9a'; it.sp.style.padding = '0 12px'; });
+}
+
+/* 8 — sinais: lista com bullets + termômetro/estetoscópio */
+{
+  const s = estacao(7);
+  objeto(s, A + 'termometro.jpg', 360, 310, 300, 520, s.start + 0.2, { dy: 120, rot: -4, b: 1.3, c: 1.35 });
+  const dot = i => ['●', ws(i) - 0.06, { font: FONTS.sans(30, 900), color: RED, from: FROM }];
+  bloco(s, 810, [
+    { seq: [89, 91, fin(48)] },
+    { line: [[dot(92), L('lesões', 92, fort(62)), L('na', 93, fort(62)), L('pele', 94, fort(62))]] },
+    { line: [[dot(95), L('febre', 95, fort(62))]] },
+    { line: [[dot(96), L('e', 96, fin(48)), L('ínguas', 97, fort(62))]] },
+  ]);
+}
+
+/* 9 — viu algo suspeito? procure atendimento */
+{
+  const s = estacao(8);
+  objeto(s, A + 'microscopio.jpg', 360, 320, 300, 520, s.start + 0.15, { dy: 120, rot: 3, b: 1.3, c: 1.35 });
+  const b = bloco(s, 800, [
+    { seq: [98, 99, fin(52)] },
+    { seq: [100, 100, { font: FONTS.sans(104, 900), color: INK, from: FROM }] },
+    { seq: [101, 102, fin(52), { 102: fort(64) }] },
+  ]);
+  const yA = parseFloat(b[2].L.style.top);
+  desenha(s, `<rect x="110" y="${yA - 50}" width="500" height="100" rx="50" fill="none" stroke="${INK}" stroke-width="3" stroke-dasharray="10 8"/>`, ws(101), 0.4);
+}
+
+/* 10 — CORTE SECO para o branco: CTA com botão e cursor clicando */
+{
+  const s = scene(...S(9), '#fbfbfb', 0.008);
+  const btn = el('div', 'abs', s.el, `<img src="${tw('1f4ac')}" style="width:38px;filter:grayscale(1) contrast(1.2)"> COMENTAR`);
+  btn.setAttribute('data-evitar', 'botao');
+  btn.style.cssText = `left:360px;top:850px;white-space:nowrap;display:flex;align-items:center;gap:14px;font:800 32px Inter;letter-spacing:.06em;color:${INK};background:#fff;border:3px solid ${INK};border-radius:60px;padding:18px 40px;box-shadow:0 14px 30px rgba(0,0,0,.12);opacity:0`;
+  const cur = el('div', 'abs', s.el, `<svg width="50" height="50" viewBox="0 0 24 24"><path d="M4 2 L4 20 L9 15 L12.5 22 L15 21 L11.6 14 L18 14 Z" fill="#111" stroke="#fff" stroke-width="1.4" stroke-linejoin="round"/></svg>`);
+  cur.style.cssText = 'left:0;top:0;opacity:0';
+  s.updates.push(t => { const t0 = ws(107); const p = pop(t, t0, 0.4); btn.style.opacity = t > t0 ? 1 : 0;
+    const click = prog(t, t0 + 1.0, t0 + 1.15);
+    btn.style.transform = `translate(-50%,-50%) scale(${p * (click > 0 && click < 1 ? 0.94 : 1)})`;
+    btn.style.background = click >= 1 ? INK : '#fff'; btn.style.color = click >= 1 ? '#fff' : INK;
+    const m = easeInOut(prog(t, t0 + 0.35, t0 + 0.95)); cur.style.opacity = t > t0 + 0.35 ? 1 : 0;
+    cur.style.transform = `translate(${lerp(650, 420, m)}px, ${lerp(1200, 855, m)}px)`; });
+  bloco(s, 600, [
+    { seq: [103, 105, fin(52)] },
+    { seq: [106, 106, { font: FONTS.sans(110, 900), color: INK, from: FROM }] },
+    { seq: [107, 108, fin(48)] },
+  ]);
+}
+
+finalize({ duration: DUR, grain: 0.04, vignette: 0.12, preload: [A + 'virus.jpg', A + 'toalhas.jpg', A + 'termometro.jpg', A + 'microscopio.jpg'], flashes: [[C[9], 0.1]] });
+</script>
+</body></html>

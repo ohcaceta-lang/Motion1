@@ -55,7 +55,8 @@ scripts de render e `descricao_tiktok.txt`. Commit e push na branch indicada pel
 | 14/11/2026 | `videos/alan-ruschel-despedida` (V1) | Cinemático próprio (preto, verde, ouro) | polaroid caindo, rota do voo tracejada, contadores, carimbo, comentário digitando |
 | 14/11/2026 | `videos/alan-ruschel-despedida` (V2) | `insta-trend-documentary-motion` | abertura clara → azul-marinho, cursor + caixa tracejada, cards 3D, pílulas com slide, infográfico de pontos, corte seco com grão, microtipografia de revista |
 | 14/11/2026 | `videos/alan-ruschel-despedida` (V3) | `motion-design-earnedits` | vinho + vinheta, palavras gigantes cortadas, eco de texto, stickers P&B caindo, 16 fps, rodapé de post |
+| 14/11/2026 | `videos/selecao-japao` | `branding-why-storytelling-earnedits` | um "mundo" por frase (HUD técnico com callouts, tela de bloqueio + notificação com zoom para dentro, visor REC, placar de LED, céu com letra manuscrita, jornal antigo, replay de TV, holofote, lousa a giz, barra de busca), bola como objeto-herói, polaroids com carimbo EXPULSO, enquete com cursor |
+| 14/11/2026 | `videos/mpox-rio` | `vender-sem-palavras-insiderforce` | canvas cinza com grade e câmera deslizando entre estações (pan com motion blur), objetos 3D P&B em multiply, caixas/conectores tracejados, gráfico de barras com selo ×7, contadores, bullets, um só corte seco para CTA branco com botão + cursor |
 
-Referências ainda **não usadas**: `branding-why-storytelling-earnedits`, `agencia-marketing-exar`,
-`vender-sem-palavras-insiderforce`, `marca-forte-cynosure`, `corretora-confiavel-pfh`,
+Referências ainda **não usadas**: `agencia-marketing-exar`, `marca-forte-cynosure`, `corretora-confiavel-pfh`,
 `posicionamento-al-ries-rivinity`, `mcdonalds-imoveis-earnedits`.

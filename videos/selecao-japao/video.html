@@ -1,0 +1,350 @@
+<!doctype html>
+<html><head><meta charset="utf-8"></head>
+<body>
+<script src="assets/words.js"></script>
+<script src="lib.js"></script>
+<script>
+/* Seleção x Japão — ref.: branding-why-storytelling-earnedits
+   Uma cena-"mundo" por frase (HUD técnico, tela de bloqueio com notificação + zoom para dentro, visor de câmera REC,
+   placar de LED, céu com letra manuscrita, jornal antigo, replay de TV, cartão vermelho, holofote, lousa a giz, barra de busca),
+   tipografia própria em cada mundo e a BOLA como objeto-herói presente em todas as cenas. */
+const A = 'assets/';
+const N = window.WORDS.length - 1;
+const cut = i => ws(i) - 0.12;
+const C = [0, cut(11), cut(20), cut(26), cut(35), cut(45), cut(49), cut(58), cut(66), cut(77), cut(88), cut(98)];
+const DUR = Math.ceil((we(N) + 2.0) * 10) / 10;
+C.push(DUR);
+const S = k => [C[k], C[k + 1]];
+const W = '#ffffff', AMAR = '#ffd21f', VERM = '#ff2d2d', VERDE = '#12a150';
+const UP = (i0, i1, extra = {}) => { const o = {}; for (let i = i0; i <= i1; i++) o[i] = clean(window.WORDS[i].w).toUpperCase(); return Object.assign(o, extra); };
+const BALL = tw('26bd');
+
+/* bola-herói girando */
+function bola(s, x, y, sz, t0, o = {}) {
+  const b = el('img', 'abs', s.el); b.src = BALL;
+  b.style.cssText = `left:${x}px;top:${y}px;width:${sz}px;filter:drop-shadow(0 ${sz * 0.12}px ${sz * 0.12}px rgba(0,0,0,.55)) ${o.f || ''};opacity:0`;
+  s.updates.push(t => { const p = prog(t, t0, t0 + (o.d || 0.5)); const e = backOut(p);
+    b.style.opacity = p > 0 ? 1 : 0;
+    const dx = (o.dx || 0) * (1 - easeOut(p)), dy = (o.dy ?? -300) * (1 - e);
+    b.style.transform = `translate(-50%,-50%) translate(${dx}px,${dy}px) rotate(${(t - t0) * (o.spin ?? 120)}deg) scale(${o.s0 != null ? lerp(o.s0, 1, e) : 1})`; });
+  return b;
+}
+/* entrada em chicote (whip) com motion blur */
+function whip(s, dir = 1, d = 0.24) {
+  s.updates.push(t => { const p = prog(t, s.start, s.start + d); if (p >= 1) return; const e = easeOutExpo(p);
+    s.el.style.transform += ` translateX(${(1 - e) * dir * 420}px)`; s.el.style.filter = `blur(${(1 - e) * 14}px)`; });
+}
+function credito(s, txt, cor = 'rgba(255,255,255,.75)') { const c = el('div', 'abs', s.el, txt); c.style.cssText = `left:40px;bottom:30px;white-space:nowrap;font:500 15px Inter;color:${cor};text-shadow:0 1px 3px rgba(0,0,0,.6)`; }
+function drawPath(s, svgInner, css, t0, d = 0.5) {     // traço que se desenha
+  const box = el('div', 'abs', s.el, `<svg width="720" height="1280" viewBox="0 0 720 1280">${svgInner}</svg>`); box.style.cssText = 'left:0;top:0;' + (css || '');
+  const ps = [...box.querySelectorAll('path,ellipse,line,polyline,rect,circle')];
+  ps.forEach(p => { const L = p.getTotalLength ? p.getTotalLength() : 1000; p.style.strokeDasharray = L; p.style.strokeDashoffset = L; p.dataset.L = L; });
+  s.updates.push(t => ps.forEach((p, k) => { const q = easeInOut(prog(t, t0 + k * 0.08, t0 + k * 0.08 + d)); p.style.strokeDashoffset = p.dataset.L * (1 - q); }));
+  return box;
+}
+function polaroid(s, src, x, y, w, h, rot, t0, pos = '50% 20%', nome = '') {
+  const p = el('div', 'abs', s.el, `<img src="${src}" style="width:${w}px;height:${h}px;object-fit:cover;object-position:${pos};display:block">
+    <div style="font:700 30px/1 Hand;color:#222;text-align:center;padding-top:10px;white-space:nowrap">${nome}</div>`);
+  p.setAttribute('data-evitar', 'foto');
+  p.style.cssText = `left:${x}px;top:${y}px;padding:12px 12px 14px;background:#fbfaf6;box-shadow:0 24px 50px rgba(0,0,0,.55)`;
+  s.updates.push(t => { const e = backOut(prog(t, t0, t0 + 0.55)); p.style.opacity = t >= t0 ? 1 : 0;
+    p.style.transform = `translate(-50%,-50%) translateY(${(1 - e) * 500}px) rotate(${lerp(rot * 4, rot, e)}deg)`; });
+  return p;
+}
+
+/* 1 — HUD técnico: bola no centro de um diagrama, callouts, réguas e códigos laterais */
+{
+  const s = scene(...S(0), '#17191b', 0.018);
+  shade(s, 'background-image:linear-gradient(rgba(255,255,255,.05) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.05) 1px,transparent 1px);background-size:40px 40px');
+  shade(s, 'background:radial-gradient(ellipse at 50% 30%, rgba(255,255,255,.10), rgba(0,0,0,.6) 75%)');
+  const hud = el('div', 'abs', s.el, `
+    <div style="position:absolute;left:34px;top:34px;width:60px;height:60px;border-left:3px solid #cfd3d6;border-top:3px solid #cfd3d6"></div>
+    <div style="position:absolute;right:34px;top:34px;width:60px;height:60px;border-right:3px solid #cfd3d6;border-top:3px solid #cfd3d6"></div>
+    <div style="position:absolute;left:34px;bottom:34px;width:60px;height:60px;border-left:3px solid #cfd3d6;border-bottom:3px solid #cfd3d6"></div>
+    <div style="position:absolute;right:34px;bottom:34px;width:60px;height:60px;border-right:3px solid #cfd3d6;border-bottom:3px solid #cfd3d6"></div>
+    <div style="position:absolute;left:14px;top:420px;writing-mode:vertical-rl;font:500 13px Inter;letter-spacing:.3em;color:#8d9296">AMISTOSO · SINGAPURA · 14.11.2026</div>
+    <div style="position:absolute;right:14px;top:430px;writing-mode:vertical-rl;font:500 13px Inter;letter-spacing:.3em;color:#8d9296">JPN 3 — 2 BRA · FT</div>
+    <div style="position:absolute;left:120px;right:120px;top:70px;height:14px;background:repeating-linear-gradient(90deg,#8d9296 0 2px,transparent 2px 16px)"></div>`);
+  hud.style.cssText = 'inset:0';
+  drawPath(s, `<circle cx="360" cy="300" r="150" fill="none" stroke="#cfd3d6" stroke-width="2" stroke-dasharray="6 8"/>
+    <polyline points="470,200 560,140 680,140" fill="none" stroke="#cfd3d6" stroke-width="2"/>
+    <polyline points="250,410 160,470 40,470" fill="none" stroke="#cfd3d6" stroke-width="2"/>`, '', 0.1, 0.6);
+  const lb1 = el('div', 'abs', s.el, 'ACRÉSCIMOS'); lb1.style.cssText = 'left:572px;top:116px;white-space:nowrap;font:600 14px Inter;letter-spacing:.2em;color:#cfd3d6';
+  const lb2 = el('div', 'abs', s.el, 'GOL · 3º'); lb2.style.cssText = 'left:48px;top:446px;white-space:nowrap;font:600 14px Inter;letter-spacing:.2em;color:#cfd3d6';
+  bola(s, 360, 300, 190, 0.05, { dy: -500, spin: 90 });
+  s.updates.push(t => { lb1.style.opacity = prog(t, 0.6, 0.8); lb2.style.opacity = prog(t, 0.7, 0.9); });
+  const g = { font: FONTS.sans(46, 500), color: '#d6d9dc', from: '#3a3d40' };
+  bloco(s, 760, [
+    { seq: [0, 1, g] },
+    { seq: [2, 2, { font: FONTS.caps(112), color: W, from: '#3a3d40', text: UP(2, 2) }] },
+    { seq: [3, 5, g] },
+    { seq: [6, 7, g, { 7: { font: FONTS.caps(76), color: AMAR } }] },
+    { seq: [8, 10, { ...g, text: UP(10, 10) }, { 10: { font: FONTS.caps(90), color: VERM, glow: 'rgba(255,45,45,.45)' } }] },
+  ], { lh: 1.32 });
+}
+
+/* 2 — tela de bloqueio: notificação do placar chega com bounce; no fim, zoom para dentro do card */
+{
+  const s = scene(...S(1), 'linear-gradient(165deg,#063b25 0%,#0d6b3a 45%,#c9a600 120%)', 0.01);
+  shade(s, 'background:radial-gradient(circle at 80% 110%, rgba(255,210,31,.45), transparent 55%), radial-gradient(circle at 10% 0%, rgba(0,0,0,.35), transparent 60%)');
+  const lock = el('div', 'abs', s.el, `<div style="font:300 22px Inter;color:rgba(255,255,255,.85);text-align:center">sábado, 14 de novembro</div>
+     <div style="font:200 150px/1 Inter;color:#fff;text-align:center;letter-spacing:-.04em">9:41</div>`);
+  lock.style.cssText = 'left:0;right:0;top:70px';
+  const card = el('div', 'abs', s.el, `<div style="display:flex;align-items:center;gap:12px">
+      <div style="width:44px;height:44px;border-radius:11px;background:#111;display:flex;align-items:center;justify-content:center"><img src="${BALL}" style="width:30px"></div>
+      <div style="font:600 19px Inter;color:#444;letter-spacing:.04em">PLACAR AO VIVO</div><div style="margin-left:auto;font:500 17px Inter;color:#777">agora</div></div>
+    <div style="font:800 30px Inter;color:#111;margin-top:12px;white-space:nowrap">Fim de jogo: Japão 3 × 2 Brasil</div>
+    <div style="font:500 22px Inter;color:#555;margin-top:4px;white-space:nowrap">Amistoso em Singapura · 2 expulsos 🟥</div>`);
+  card.setAttribute('data-evitar', 'notificacao');
+  card.style.cssText = 'left:360px;top:440px;width:620px;padding:20px 22px;border-radius:26px;background:rgba(245,245,247,.93);box-shadow:0 20px 50px rgba(0,0,0,.35)';
+  s.updates.push(t => { const p = pop(t, s.start + 0.15, 0.45); card.style.opacity = t > s.start + 0.15 ? 1 : 0;
+    card.style.transform = `translate(-50%,-50%) translateY(${(1 - Math.min(p, 1)) * -160}px) scale(${0.85 + 0.15 * p})`;
+    const z = easeIn(prog(t, s.end - 0.32, s.end));        // zoom para dentro do card (transição motivada)
+    if (z > 0) { s.el.style.transform += ` translateY(${z * 900}px) scale(${1 + z * 2.2})`; s.el.style.transformOrigin = '50% 34%'; s.el.style.filter = `blur(${z * 10}px)`; } });
+  const g = { font: FONTS.sans(50, 500), color: W, from: '#2b6a48', outAt: S(1)[1] - 0.34 };
+  bloco(s, 790, [
+    { seq: [11, 13, g] },
+    { seq: [14, 16, { ...g, font: FONTS.sans(58, 800) }] },
+    { seq: [17, 19, g, { 19: { font: FONTS.dms(118), color: AMAR, glow: 'rgba(255,210,31,.35)' } }] },
+  ]);
+}
+
+/* 3 — visor de câmera REC sobre o estádio */
+{
+  const s = scene(...S(2), '#000', 0.02);
+  bg(s, A + 'estadio.jpg', { z0: 1.25, z1: 1.08, filter: 'brightness(.5) contrast(1.15) saturate(.8)' });
+  shade(s, 'background:radial-gradient(ellipse at 50% 50%, rgba(0,0,0,.05), rgba(0,0,0,.65))');
+  const vf = el('div', 'abs', s.el, `
+    <div style="position:absolute;left:60px;top:60px;width:70px;height:70px;border-left:4px solid #fff;border-top:4px solid #fff"></div>
+    <div style="position:absolute;right:60px;top:60px;width:70px;height:70px;border-right:4px solid #fff;border-top:4px solid #fff"></div>
+    <div style="position:absolute;left:60px;bottom:60px;width:70px;height:70px;border-left:4px solid #fff;border-bottom:4px solid #fff"></div>
+    <div style="position:absolute;right:60px;bottom:60px;width:70px;height:70px;border-right:4px solid #fff;border-bottom:4px solid #fff"></div>
+    <div style="position:absolute;left:240px;top:0;bottom:0;border-left:1px solid rgba(255,255,255,.25)"></div>
+    <div style="position:absolute;left:480px;top:0;bottom:0;border-left:1px solid rgba(255,255,255,.25)"></div>
+    <div style="position:absolute;top:427px;left:0;right:0;border-top:1px solid rgba(255,255,255,.25)"></div>
+    <div style="position:absolute;top:853px;left:0;right:0;border-top:1px solid rgba(255,255,255,.25)"></div>
+    <div id="rec" style="position:absolute;right:90px;top:92px;font:700 26px Inter;color:#fff;white-space:nowrap"><span id="dot" style="display:inline-block;width:18px;height:18px;border-radius:50%;background:#ff2d2d;margin-right:10px"></span>REC</div>
+    <div style="position:absolute;left:96px;top:92px;width:46px;height:22px;border:2px solid #fff;border-radius:4px;padding:2px"><div style="width:70%;height:100%;background:#fff"></div></div>
+    <div id="tc" style="position:absolute;left:0;right:0;bottom:92px;text-align:center;font:500 26px Inter;color:#fff;letter-spacing:.12em"></div>`);
+  vf.style.cssText = 'inset:0';
+  const dot = vf.querySelector('#dot'), tc = vf.querySelector('#tc');
+  bola(s, 560, 1010, 90, ws(23), { dy: 0, dx: -400, spin: 360 });
+  const zz = el('img', 'abs', s.el); zz.src = tw('1f634'); zz.style.cssText = 'left:360px;top:880px;width:96px;opacity:0';
+  s.updates.push(t => { dot.style.opacity = Math.floor(t * 2) % 2 ? 0.25 : 1;
+    const f = Math.floor((t - s.start) * 30); tc.textContent = `00:00:${String(Math.floor(f / 30)).padStart(2, '0')}:${String(f % 30).padStart(2, '0')}`;
+    const p = pop(t, ws(25), 0.4); zz.style.opacity = t > ws(25) ? 1 : 0; zz.style.transform = `translate(-50%,-50%) scale(${p}) rotate(${Math.sin(t * 3) * 8}deg)`; });
+  whip(s, 1);
+  bloco(s, 650, [
+    { seq: [20, 21, { font: FONTS.sans(54, 700), color: W, from: '#555555' }] },
+    { seq: [22, 24, { font: FONTS.sans(48, 500), color: W, from: '#555555' }] },
+    { seq: [25, 25, { font: FONTS.caps(124), color: AMAR, from: '#555555', text: UP(25, 25) }] },
+  ]);
+}
+
+/* 4 — placar de LED: 2 × 0 e o relógio correndo até os 19 minutos */
+{
+  const s = scene(...S(3), 'radial-gradient(ellipse at 50% 30%, #13233d 0%, #060b14 75%)', 0.015);
+  shade(s, 'background-image:radial-gradient(circle, rgba(255,255,255,.07) 1.4px, transparent 1.8px);background-size:12px 12px');
+  const board = el('div', 'abs', s.el, `<div style="display:flex;align-items:center;justify-content:center;gap:26px;font:400 64px Anton;color:#ffe9a8;text-shadow:0 0 18px rgba(255,200,60,.8)">
+      <span style="font:700 34px Inter;color:#fff;text-shadow:none">JPN</span><span id="sj">0</span><span style="opacity:.6">×</span><span>0</span><span style="font:700 34px Inter;color:#fff;text-shadow:none">BRA</span></div>
+    <div id="clk" style="text-align:center;font:400 40px Anton;color:#ff6b6b;text-shadow:0 0 14px rgba(255,60,60,.8);margin-top:6px">00:00</div>`);
+  board.setAttribute('data-evitar', 'placar');
+  board.style.cssText = 'left:360px;width:440px;padding:18px 20px;background:#050505;border:3px solid #2b2f36;border-radius:16px;box-shadow:0 0 0 6px #111, 0 30px 60px rgba(0,0,0,.6)';
+  const sj = board.querySelector('#sj'), clk = board.querySelector('#clk');
+  bola(s, 600, 1060, 80, ws(29), { dy: -200, spin: 300 });
+  s.updates.push(t => { board.style.transform = `translate(-50%,-50%) scale(${pop(t, s.start + 0.05, 0.4)})`;
+    sj.textContent = t >= ws(29) ? 2 : t >= ws(28) ? 1 : 0;
+    const m = 19 * easeInOut(prog(t, s.start + 0.2, ws(34))); const mm = Math.floor(m), ss = Math.floor((m - mm) * 60);
+    clk.textContent = `${String(mm).padStart(2, '0')}:${String(ss).padStart(2, '0')}`;
+    if (t > ws(29) && t < ws(29) + 0.2) s.el.style.transform += ` translate(${Math.sin(t * 150) * 6}px,0)`; });
+  whip(s, -1);
+  const g = { font: FONTS.sans(48, 500), color: W, from: '#2a3550' };
+  bloco(s, 640, [
+    { el: board, h: 200 },
+    { seq: [26, 27, g] },
+    { seq: [28, 29, { font: FONTS.caps(124), color: W, from: '#2a3550', text: { 28: '2', 29: 'GOLS' } }, { 29: { font: FONTS.caps(124), color: VERM, glow: 'rgba(255,45,45,.4)' } }] },
+    { seq: [30, 32, g] },
+    { seq: [33, 34, { font: FONTS.caps(92), color: AMAR, from: '#2a3550', text: { 33: '20', 34: 'MINUTOS' } }] },
+  ]);
+}
+
+/* 5 — céu azul + letra manuscrita: polaroid do Vini com círculo desenhado à mão */
+{
+  const s = scene(...S(4), 'linear-gradient(180deg,#2f8cff 0%,#8cc8ff 60%,#dff0ff 100%)', 0.015);
+  shade(s, 'background:radial-gradient(ellipse 260px 90px at 120px 1130px, rgba(255,255,255,.95), transparent 70%), radial-gradient(ellipse 320px 110px at 620px 1200px, rgba(255,255,255,.95), transparent 70%), radial-gradient(ellipse 220px 70px at 600px 120px, rgba(255,255,255,.8), transparent 70%)');
+  polaroid(s, A + 'foto_vini.jpg', 360, 330, 280, 300, -4, s.start + 0.1, '50% 18%', 'Vini Jr.');
+  drawPath(s, `<ellipse cx="360" cy="300" rx="215" ry="235" fill="none" stroke="#ffd21f" stroke-width="7" stroke-linecap="round" transform="rotate(-8 360 300)" style="filter:url(#rough)"/>`, '', ws(37), 0.5);
+  bola(s, 600, 560, 80, ws(40), { dx: -700, dy: 0, spin: 600 });
+  bola(s, 120, 600, 64, ws(41), { dx: 700, dy: 0, spin: -600 });
+  const nav = '#0b2a55';
+  bloco(s, 830, [
+    { seq: [35, 36, { font: FONTS.hand(64), color: nav, from: '#9cc6ef' }] },
+    { seq: [37, 38, { font: FONTS.hand(124), color: nav, from: '#9cc6ef' }] },
+    { seq: [39, 40, { font: FONTS.sans(54, 800), color: nav, from: '#9cc6ef', text: { 39: '2' } }, { 40: { font: FONTS.sans(54, 800), color: '#0a7a3d' } }] },
+    { seq: [41, 44, { font: FONTS.sans(48, 500), color: nav, from: '#9cc6ef' }] },
+  ]);
+  credito(s, 'Foto: Real Madrid · Wikimedia Commons (CC BY 3.0)', 'rgba(11,42,85,.8)');
+  whip(s, 1);
+}
+
+/* 6 — gramado visto de cima: placar vira 2 × 2 */
+{
+  const s = scene(...S(5), 'repeating-linear-gradient(0deg,#0f7a36 0 120px,#0c6a2f 120px 240px)', 0.02);
+  shade(s, 'background:radial-gradient(ellipse at 50% 50%, transparent 30%, rgba(0,0,0,.55))');
+  drawPath(s, `<circle cx="360" cy="640" r="230" fill="none" stroke="rgba(255,255,255,.55)" stroke-width="5"/><line x1="0" y1="640" x2="720" y2="640" stroke="rgba(255,255,255,.55)" stroke-width="5"/>`, '', s.start, 0.6);
+  const sc = el('div', 'abs', s.el, `<span style="font:700 34px Inter;color:#fff;vertical-align:middle">JPN</span> <span>2</span> <span style="opacity:.7">×</span> <span id="sb">0</span> <span style="font:700 34px Inter;color:#fff;vertical-align:middle">BRA</span>`);
+  sc.setAttribute('data-evitar', 'placar');
+  sc.style.cssText = 'left:360px;white-space:nowrap;font:400 170px/1 Anton;color:#fff;text-shadow:0 10px 30px rgba(0,0,0,.5)';
+  const sb = sc.querySelector('#sb');
+  s.updates.push(t => { sc.style.transform = 'translate(-50%,-50%)'; const v = t >= ws(48) ? 2 : t >= ws(46) ? 1 : 0; sb.textContent = v;
+    const fl = prog(t, ws(48), ws(48) + 0.25); sb.style.color = mix('#ffd21f', '#ffffff', fl); sb.style.display = 'inline-block'; sb.style.transform = `scaleY(${fl > 0 && fl < 1 ? Math.abs(Math.cos(fl * Math.PI)) : 1})`; });
+  bola(s, 560, 980, 80, s.start + 0.1, { dy: 0, dx: 500, spin: 400 });
+  bloco(s, 640, [
+    { seq: [45, 47, { font: FONTS.sans(54, 600), color: W, from: '#2f7a4a' }] },
+    { el: sc, h: 200 },
+    { seq: [48, 48, { font: FONTS.caps(104), color: AMAR, from: '#2f7a4a', text: UP(48, 48), glow: 'rgba(255,210,31,.35)' }] },
+  ]);
+}
+
+/* 7 — jornal antigo: edição extra com a manchete SAKAMOTO */
+{
+  const s = scene(...S(6), '#d8c7a4', 0.015);
+  bg(s, A + 'jornal.jpg', { z0: 1.08, z1: 1.18, filter: 'sepia(.5) contrast(1.05) brightness(1.02)' });
+  const head = el('div', 'abs', s.el, `<div style="font:900 60px/1 Play;font-style:normal;color:#1d1a16;text-align:center;letter-spacing:-.01em">O DIÁRIO DA BOLA</div>
+    <div style="display:flex;justify-content:space-between;border-top:3px solid #1d1a16;border-bottom:1px solid #1d1a16;margin-top:10px;padding:6px 2px;font:400 18px Type;color:#1d1a16"><span>EDIÇÃO EXTRA</span><span>SÁBADO, 14/11/2026</span><span>R$ 2,00</span></div>`);
+  head.style.cssText = 'left:40px;right:40px;top:70px';
+  const ph = el('div', 'abs', s.el, `<img src="${A}rede.jpg" style="width:560px;height:250px;object-fit:cover;object-position:50% 60%;filter:grayscale(1) sepia(.35) contrast(1.2);display:block">`);
+  ph.setAttribute('data-evitar', 'foto');
+  ph.style.cssText = 'left:360px;top:375px;border:2px solid #1d1a16;padding:6px;background:#efe3c8';
+  for (let k = 0; k < 2; k++) { const col = el('div', 'abs', s.el); col.style.cssText = `left:${40 + k * 330}px;top:1100px;width:310px;height:120px;background:repeating-linear-gradient(180deg,rgba(29,26,22,.55) 0 4px,transparent 4px 14px)`; }
+  s.updates.push(t => { const p = easeOutExpo(prog(t, s.start + 0.05, s.start + 0.5)); ph.style.transform = `translate(-50%,-50%) rotate(${lerp(6, -1.5, p)}deg) scale(${lerp(1.3, 1, p)})`; ph.style.opacity = p; });
+  const ink = '#1d1a16', from = '#b9a983';
+  bloco(s, 820, [
+    { seq: [49, 51, { font: FONTS.type(44), color: ink, from }] },
+    { seq: [52, 52, { font: FONTS.serif(100), color: ink, from, text: UP(52, 52) }] },
+    { seq: [53, 55, { font: FONTS.type(46), color: ink, from }] },
+    { seq: [56, 57, { font: FONTS.dms(84), color: '#a8121b', from }] },
+  ]);
+}
+
+/* 8 — replay de TV em câmera lenta: o lance da falta, circulado à mão */
+{
+  const s = scene(...S(7), '#000', 0.0);
+  const im = bg(s, A + 'rede.jpg', { z0: 1.1, z1: 1.35, origin: '45% 60%', filter: 'grayscale(.6) brightness(.5) contrast(1.2)' });
+  shade(s, 'background:linear-gradient(180deg, rgba(0,0,0,.45), rgba(0,0,0,.15) 40%, rgba(0,0,0,.7))');
+  const ui = el('div', 'abs', s.el, `<div style="position:absolute;left:44px;top:60px;display:flex;gap:10px;align-items:center">
+      <div style="background:#ff2d2d;color:#fff;font:800 24px Inter;padding:6px 14px;border-radius:6px;letter-spacing:.08em">REPLAY</div>
+      <div style="color:#fff;font:600 22px Inter;opacity:.85">◀◀ 0.25x</div></div>
+    <div style="position:absolute;left:44px;right:44px;bottom:70px;height:6px;background:rgba(255,255,255,.3);border-radius:3px"><div id="bar" style="height:100%;width:0;background:#ff2d2d;border-radius:3px"></div></div>`);
+  ui.style.cssText = 'inset:0';
+  const bar = ui.querySelector('#bar');
+  s.updates.push(t => { bar.style.width = (100 * prog(t, s.start, s.end)) + '%';
+    const step = Math.floor((t - s.start) * 6) / 6; im.style.transform += ` translateX(${Math.sin(step * 4) * 4}px)`; });  // câmera lenta "travando"
+  const b = bloco(s, 700, [
+    { seq: [58, 59, { font: FONTS.sans(52, 600), color: W, from: '#444444' }] },
+    { seq: [60, 63, { font: FONTS.sans(52, 600), color: W, from: '#444444' }] },
+    { seq: [64, 65, { font: FONTS.sans(52, 600), color: W, from: '#444444', text: { 65: 'FALTA' } }, { 65: { font: FONTS.caps(128), color: VERM, glow: 'rgba(255,45,45,.45)' } }] },
+  ]);
+  const yF = parseFloat(b[2].L.style.top);
+  drawPath(s, `<ellipse cx="438" cy="${yF}" rx="150" ry="88" fill="none" stroke="#ffd21f" stroke-width="7" stroke-linecap="round" transform="rotate(-6 438 ${yF})" style="filter:url(#rough)"/>`, '', ws(65) + 0.15, 0.4);
+  bola(s, 140, 1010, 80, s.start + 0.1, { dy: -200, spin: 60 });
+}
+
+/* 9 — cartão vermelho: polaroids de Ancelotti e Raphinha recebem o carimbo EXPULSO */
+{
+  const s = scene(...S(8), '#120304', 0.018);
+  bg(s, A + 'cartao.jpg', { z0: 1.15, z1: 1.3, filter: 'brightness(.35) saturate(1.3)' });
+  shade(s, 'background:radial-gradient(ellipse at 50% 40%, rgba(120,0,0,.25), rgba(0,0,0,.8))');
+  polaroid(s, A + 'foto_ancelotti2.jpg', 210, 330, 220, 250, -6, s.start + 0.1, '50% 18%', 'Ancelotti');
+  polaroid(s, A + 'foto_raphinha.jpg', 510, 340, 220, 250, 5, s.start + 0.25, '50% 14%', 'Raphinha');
+  const stamp = (x, y, t0, rot) => { const st = el('div', 'abs', s.el, 'EXPULSO');
+    st.style.cssText = `left:${x}px;top:${y}px;white-space:nowrap;font:400 46px Anton;color:#ff2d2d;border:5px solid #ff2d2d;padding:0 14px;filter:url(#rough);opacity:0;background:rgba(255,255,255,.08)`;
+    s.updates.push(t => { const q = prog(t, t0, t0 + 0.18); st.style.opacity = q > 0 ? 0.95 : 0; st.style.transform = `translate(-50%,-50%) rotate(${rot}deg) scale(${q > 0 ? lerp(2.4, 1, easeOutExpo(q)) : 0})`;
+      if (t > t0 + 0.12 && t < t0 + 0.3) s.el.style.transform += ` translate(${Math.sin(t * 160) * 5}px,0)`; }); };
+  stamp(210, 452, ws(72) + 0.15, -10); stamp(510, 462, ws(74) + 0.15, 8);
+  const card = el('img', 'abs', s.el); card.src = tw('1f7e5'); card.style.cssText = 'left:610px;top:560px;width:70px;opacity:0';
+  s.updates.push(t => { const p = pop(t, ws(76), 0.35); card.style.opacity = t > ws(76) ? 1 : 0; card.style.transform = `translate(-50%,-50%) scale(${p}) rotate(14deg)`; });
+  bola(s, 110, 580, 60, s.start + 0.3, { dy: -200, spin: 90 });
+  const g = { font: FONTS.sans(50, 600), color: W, from: '#4a1a1a' };
+  bloco(s, 840, [
+    { seq: [66, 68, g] },
+    { seq: [69, 70, { ...g, text: { 70: 'GOL' } }, { 70: { font: FONTS.caps(100), color: W } }] },
+    { seq: [71, 74, { ...g, font: FONTS.sans(46, 700) }] },
+    { seq: [75, 76, { ...g, text: { 76: 'EXPULSOS' } }, { 76: { font: FONTS.caps(92), color: VERM, glow: 'rgba(255,45,45,.5)' } }] },
+  ]);
+  credito(s, 'Fotos: Bryan Berlin · Wikimedia Commons (CC BY-SA 4.0)');
+}
+
+/* 10 — holofote sobre azul-petróleo: a frase do Raphinha empilhada */
+{
+  const s = scene(...S(9), 'radial-gradient(ellipse at 50% 20%, #24566a 0%, #0f2a36 55%, #050d12 100%)', 0.015);
+  shade(s, 'background:linear-gradient(180deg, rgba(255,255,240,.30), rgba(255,255,240,0) 70%);clip-path:polygon(40% 0,60% 0,95% 100%,5% 100%)');
+  const lamp = el('div', 'abs', s.el); lamp.style.cssText = 'left:300px;top:-30px;width:120px;height:60px;border-radius:0 0 60px 60px;background:#e9edf0;box-shadow:0 0 60px 20px rgba(255,255,230,.6)';
+  s.updates.push(t => { const f = 0.85 + 0.15 * Math.sin(t * 9) * Math.sin(t * 2.3); s.el.style.filter = `brightness(${f})`; });
+  bola(s, 360, 1060, 76, s.start + 0.2, { dy: 0, dx: -500, spin: 300 });
+  const st = { font: FONTS.caps(78), color: '#e8f1f5', from: '#28495a' };
+  bloco(s, 630, [
+    { seq: [77, 78, { font: FONTS.sans(42, 500), color: '#9fc7d6', from: '#28495a' }] },
+    { seq: [79, 81, { ...st, text: UP(79, 81, { 79: '“QUANDO' }) }] },
+    { seq: [82, 83, { ...st, text: UP(82, 83) }, { 83: { font: FONTS.caps(78), color: AMAR } }] },
+    { seq: [84, 85, { ...st, font: FONTS.caps(100), text: UP(84, 85) }] },
+    { seq: [86, 87, { ...st, color: '#ff5a5a', text: UP(86, 87, { 87: 'DIFÍCIL”' }) }] },
+  ], { lh: 1.36 });
+  whip(s, -1);
+}
+
+/* 11 — lousa a giz: o momento de "ensinar" */
+{
+  const s = scene(...S(10), '#1a1410', 0.012);
+  bg(s, A + 'lousa.jpg', { z0: 1.0, z1: 1.08, origin: '50% 40%', filter: 'brightness(.9)' });
+  const chalk = { font: FONTS.hand(66), color: '#f2f2ea', from: '#3d5a4a' };
+  const b = bloco(s, 520, [
+    { seq: [88, 90, chalk] },
+    { seq: [91, 91, { ...chalk, font: FONTS.hand(138), text: UP(91, 91) }] },
+    { seq: [92, 94, chalk] },
+    { seq: [95, 97, { ...chalk, text: { 96: '3' } }, { 96: { font: FONTS.hand(100), color: '#ffd84a' } }] },
+  ]);
+  s.words.forEach(r => r.L.style.textShadow = '0 0 2px rgba(255,255,255,.5)');
+  const yD = parseFloat(b[1].L.style.top) + 62;
+  drawPath(s, `<path d="M190 ${yD} Q 360 ${yD + 22} 540 ${yD - 4}" fill="none" stroke="#f2f2ea" stroke-width="6" stroke-linecap="round" opacity=".85"/>`, '', ws(91) + 0.35, 0.4);
+}
+
+/* 12 — CTA: barra de busca digitando + enquete com cursor clicando */
+{
+  const s = scene(...S(11), 'radial-gradient(ellipse at 50% 30%, #ffffff 0%, #e6edf8 80%)', 0.01);
+  const sb = el('div', 'abs', s.el, `<svg width="26" height="26" viewBox="0 0 24 24"><circle cx="10" cy="10" r="7" fill="none" stroke="#777" stroke-width="2.5"/><line x1="15" y1="15" x2="21" y2="21" stroke="#777" stroke-width="2.5" stroke-linecap="round"/></svg>
+    <div id="q" style="font:500 26px Inter;color:#222;white-space:nowrap"></div><div id="car" style="width:2px;height:30px;background:#1a73e8"></div>`);
+  sb.style.cssText = 'left:360px;top:220px;width:600px;height:72px;border-radius:36px;background:#fff;box-shadow:0 6px 24px rgba(30,50,90,.18);display:flex;align-items:center;gap:14px;padding:0 26px';
+  sb.setAttribute('data-evitar', 'busca');
+  const q = sb.querySelector('#q'), car = sb.querySelector('#car'); const msg = 'japão 3x2 brasil juiz';
+  const poll = el('div', 'abs', s.el, `<div style="font:800 22px Inter;color:#111;text-align:center;margin-bottom:12px;letter-spacing:.06em">DE QUEM FOI A CULPA?</div>
+    <div id="o1" style="height:64px;border-radius:14px;background:#f0f2f5;margin-bottom:10px;font:700 26px/64px Inter;padding-left:20px;display:flex;align-items:center;gap:12px"><img src="${tw('1f7e5')}" style="width:30px">DO JUIZ</div>
+    <div id="o2" style="height:64px;border-radius:14px;background:#f0f2f5;font:700 26px/64px Inter;padding-left:20px;display:flex;align-items:center;gap:12px"><img src="${BALL}" style="width:30px">DA SELEÇÃO</div>`);
+  poll.setAttribute('data-evitar', 'enquete');
+  poll.style.cssText = 'left:360px;top:900px;width:440px;padding:22px;background:#fff;border-radius:24px;box-shadow:0 20px 50px rgba(30,50,90,.25)';
+  const o1 = poll.querySelector('#o1');
+  const cur = el('div', 'abs', s.el, `<svg width="44" height="44" viewBox="0 0 24 24"><path d="M4 2 L4 20 L9 15 L12.5 22 L15 21 L11.6 14 L18 14 Z" fill="#111" stroke="#fff" stroke-width="1.4" stroke-linejoin="round"/></svg>`);
+  s.updates.push(t => {
+    sb.style.transform = `translate(-50%,-50%) scale(${pop(t, s.start + 0.05, 0.4)})`;
+    const n = Math.floor(clamp((t - s.start - 0.3) * 18, 0, msg.length)); q.textContent = msg.slice(0, n); car.style.opacity = Math.floor(t * 3) % 2 ? 0 : 1;
+    const t0 = ws(105) - 0.2; const p = pop(t, t0, 0.4); poll.style.opacity = t > t0 ? 1 : 0; poll.style.transform = `translate(-50%,-50%) scale(${p}) rotate(-1.5deg)`;
+    const m = easeInOut(prog(t, t0 + 0.4, t0 + 1.0)); cur.style.opacity = t > t0 + 0.4 ? 1 : 0;
+    const click = prog(t, t0 + 1.05, t0 + 1.2);
+    cur.style.transform = `translate(${lerp(640, 300, m)}px, ${lerp(1180, 900, m)}px) scale(${click > 0 && click < 1 ? 0.85 : 1})`;
+    o1.style.background = click >= 1 ? '#ffe1e1' : '#f0f2f5'; o1.style.outline = click >= 1 ? '3px solid #ff2d2d' : 'none';
+  });
+  cur.style.cssText = 'left:0;top:0';
+  bola(s, 620, 160, 64, s.start + 0.1, { dy: -200, spin: 120 });
+  const g = { font: FONTS.sans(54, 600), color: '#1a1a1a', from: '#c9d3e3' };
+  bloco(s, 560, [
+    { seq: [98, 99, g] },
+    { seq: [100, 101, { ...g, text: { 101: 'JUIZ' } }, { 101: { font: FONTS.caps(112), color: VERM } }] },
+    { seq: [102, 104, { ...g, text: { 104: 'SELEÇÃO?' } }, { 104: { font: FONTS.caps(96), color: VERDE } }] },
+    { seq: [105, 106, { ...g, font: FONTS.sans(46, 500), color: '#444444' }] },
+  ], { lh: 1.33 });
+}
+
+finalize({ duration: DUR, grain: 0.07, vignette: 0.45, preload: [A + 'foto_vini.jpg', A + 'foto_ancelotti2.jpg', A + 'foto_raphinha.jpg', BALL],
+  flashes: [[C[2], 0.1], [C[4], 0.1], [C[5], 0.12, '255,210,31'], [C[6], 0.1], [C[7], 0.15, '255,45,45'], [C[8], 0.12, '255,45,45'], [C[10], 0.1], [C[11], 0.12]] });
+</script>
+</body></html>
