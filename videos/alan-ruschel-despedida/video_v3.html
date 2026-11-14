@@ -1,0 +1,231 @@
+<!doctype html>
+<html><head><meta charset="utf-8"></head>
+<body>
+<script src="assets/words.js"></script>
+<script src="lib.js"></script>
+<script>
+/* V3 — Vinho com eco de texto (ref.: motion-design-earnedits)
+   vinho + vinheta pesada, serifa display em CAIXA-ALTA com glow, conectores em itálico pequeno, palavras gigantes
+   cortadas pela borda, eco empilhado com opacidade decrescente, "stickers" P&B caindo com motion blur,
+   fotos P&B como respiro, um único acento quente (amarelo) no acesso, 16 fps estilizado, CTA com rodapé de post. */
+const ROSA = '#ff8a90', CREME = '#f3e7d6', VERM = '#ff2a35', AMAR = '#f5b82e', W = '#ffffff';
+const A = 'assets/';
+const N = window.WORDS.length - 1;
+const cut = i => ws(i) - 0.12;
+const C = [0, cut(6), cut(13), cut(23), cut(35), cut(43), cut(58), cut(66), cut(75), cut(83), cut(94), cut(104)];
+const DUR = Math.ceil((we(N) + 2.0) * 10) / 10;
+C.push(DUR);
+const S = k => [C[k], C[k + 1]];
+const VINHO = 'radial-gradient(ellipse at 50% 45%, #8a1018 0%, #4a060b 45%, #140103 85%)';
+const GLOW = 'rgba(255,220,200,.35)';
+const K = px => ({ ...FONTS.dms(px), caps: true });           // serifa display em caixa-alta
+const it = px => FONTS.dms(px, true);                          // conector itálico pequeno
+
+/* caixa-alta automática nas palavras com fonte K */
+const _seq = seq; seq = function (s, x, y, i0, i1, o = {}, per = {}) {
+  const r = _seq(s, x, y, i0, i1, o, per);
+  r.items.forEach((itm, k) => { const f = (per[i0 + k] && per[i0 + k].font) || o.font; if (f && f.caps) itm.sp.textContent = itm.sp.textContent.toUpperCase(); });
+  return r;
+};
+const _line = line; line = function (s, x, y, words, o = {}) {
+  const r = _line(s, x, y, words, o);
+  r.items.forEach((itm, k) => { const f = (words[k][2] && words[k][2].font) || o.font; if (f && f.caps) itm.sp.textContent = itm.sp.textContent.toUpperCase(); });
+  return r;
+};
+
+function gigante(s, txt, y, t0, px = 230, op = 0.95, cor = CREME, dx = 0) {   // palavra decorativa cortada pela borda
+  const g = el('div', 'abs', s.el, txt);
+  g.style.cssText = `left:${360 + dx}px;top:${y}px;white-space:nowrap;font:400 ${px}px/0.9 DMS;color:${cor};letter-spacing:-.02em;text-shadow:0 0 30px ${GLOW};opacity:0`;
+  s.updates.push(t => { const p = prog(t, t0, t0 + 0.35); g.style.opacity = p > 0 ? op : 0;
+    g.style.transform = `translate(-50%,-50%) scale(${lerp(1.4, 1, easeOutExpo(p)) + (t - t0) * 0.02})`; g.style.filter = `blur(${(1 - easeOut(p)) * 12}px)`; });
+  return g;
+}
+function eco(s, txt, x, y, t0, n = 4, px = 96, dy = 88, cor = CREME) {      // eco empilhado com opacidade decrescente
+  for (let k = 0; k < n; k++) {
+    const e = el('div', 'abs', s.el, txt);
+    e.style.cssText = `left:${x}px;top:${y + k * dy}px;white-space:nowrap;font:400 ${px}px/1 DMS;color:${cor};text-shadow:0 0 20px ${GLOW};opacity:0`;
+    s.updates.push(t => { const p = prog(t, t0 + k * 0.08, t0 + k * 0.08 + 0.25); e.style.opacity = p * (k === 0 ? 1 : 0.55 - k * 0.12);
+      e.style.transform = `translate(-50%,-50%) translateY(${(1 - easeOutExpo(p)) * 40}px)`; });
+  }
+}
+function sticker(s, code, x, y, t0, sz = 120, rot = 30, colorido = false, cai = 500) {  // objeto P&B caindo e girando
+  const st = el('img', 'abs', s.el); st.src = tw(code);
+  st.style.cssText = `left:${x}px;top:${y}px;width:${sz}px;filter:${colorido ? 'drop-shadow(0 18px 20px rgba(0,0,0,.6))' : 'grayscale(1) contrast(1.4) brightness(1.15) drop-shadow(0 18px 20px rgba(0,0,0,.6))'};opacity:0`;
+  s.updates.push(t => { const p = prog(t, t0, t0 + 0.55), e = backOut(p);
+    st.style.opacity = p > 0 ? 1 : 0;
+    st.style.transform = `translate(-50%,-50%) translateY(${(1 - e) * -cai}px) rotate(${lerp(rot * 3, rot, e) + Math.sin(t * 2 + x) * 6}deg)`;
+    if (p > 0 && p < 0.6) st.style.filter += ` blur(${(1 - p / 0.6) * 4}px)`; });
+  return st;
+}
+function fotoPB(s, src, o = {}) { return bg(s, src, { filter: 'grayscale(1) contrast(1.25) brightness(.55)', ...o }); }
+function credito(s, txt) { const c = el('div', 'abs', s.el, txt); c.style.cssText = 'left:40px;bottom:34px;white-space:nowrap;font:500 15px Inter;color:rgba(255,255,255,.7)'; }
+const B = (px, cor = CREME) => ({ font: K(px), color: cor, glow: GLOW, from: '#5a1016' });
+const I = (px, cor = CREME) => ({ font: it(px), color: cor, from: '#5a1016' });
+
+/* 1 — gancho: palavra gigante cortada + avião caindo */
+{
+  const s = scene(...S(0), VINHO, 0.02);
+  gigante(s, 'SOBREVIVEU', 250, 0.15, 210, 0.9);
+  sticker(s, '2708', 560, 470, 0.4, 130, 35);
+  seq(s, 360, 620, 0, 1, { ...B(78) }, { 1: B(78) });
+  seq(s, 360, 720, 2, 3, I(46));
+  seq(s, 360, 830, 4, 4, B(100, W));
+  seq(s, 360, 960, 5, 5, { ...B(100, VERM), glow: 'rgba(255,42,53,.55)' });
+}
+
+/* 2 — respiro P&B: estádio + "HOJE" vermelho */
+{
+  const s = scene(...S(1), '#000', 0.02);
+  fotoPB(s, A + 'estadio.jpg', { z0: 1.1, z1: 1.22 });
+  shade(s, 'background:radial-gradient(ellipse at 50% 50%, rgba(0,0,0,.1), rgba(0,0,0,.75))');
+  seq(s, 360, 420, 6, 7, I(54, W), { 7: { ...B(140, VERM), glow: 'rgba(255,42,53,.6)' } });
+  seq(s, 360, 580, 8, 10, I(58, W));
+  seq(s, 360, 700, 11, 12, I(54, W), { 12: B(110, W) });
+}
+
+/* 3 — foto P&B do Alan + eco do sobrenome */
+{
+  const s = scene(...S(2), VINHO, 0.015);
+  eco(s, 'RUSCHEL', 360, 170, s.start + 0.05, 4, 120, 96);
+  const ph = el('div', 'abs', s.el, `<img src="${A}foto_alan.jpg" style="width:330px;height:400px;object-fit:cover;object-position:50% 20%;filter:grayscale(1) contrast(1.2);display:block">`);
+  ph.setAttribute('data-evitar', 'foto');
+  ph.style.cssText = 'left:360px;top:560px;box-shadow:0 30px 60px rgba(0,0,0,.7);border:5px solid #f3e7d6';
+  s.updates.push(t => { const e = backOut(prog(t, s.start + 0.15, s.start + 0.7)); ph.style.opacity = t > s.start + 0.15 ? 1 : 0;
+    ph.style.transform = `translate(-50%,-50%) translateY(${(1 - e) * 600}px) rotate(${lerp(20, 4, e)}deg)`; });
+  seq(s, 360, 850, 13, 14, B(76));
+  seq(s, 360, 945, 15, 17, I(44), { 17: B(52, ROSA) });
+  line(s, 360, 1060, [['tem', ws(18), I(44)], ['37', ws(19), B(84)], ['anos', ws(22), I(44)]], {});
+  credito(s, 'Foto: Sirli Freitas/Chapecoense · Wikimedia Commons (CC BY 2.0)');
+}
+
+/* 4 — 2016: número gigante cortado + avião tombando */
+{
+  const s = scene(...S(3), VINHO, 0.02);
+  gigante(s, '2016', 300, ws(24), 330, 0.95);
+  sticker(s, '2708', 360, 560, ws(29), 150, 140, false, 300);
+  seq(s, 360, 700, 28, 30, I(46));
+  seq(s, 360, 810, 31, 31, B(92, W));
+  seq(s, 360, 920, 32, 34, I(48), { 34: B(58, ROSA) });
+  const tp = typer(s.el, `left:360px;top:1150px;transform:translateX(-50%);white-space:nowrap;font:400 26px Type;color:rgba(243,231,214,.7)`, '29 . 11 . 2016', ws(25), 14);
+  s.updates.push(t => tp.at(t));
+}
+
+/* 5 — respiro P&B: velas + 71 com glow + 6 */
+{
+  const s = scene(...S(4), '#000', 0.012);
+  fotoPB(s, A + 'velas.jpg', { z0: 1.15, z1: 1.03 });
+  shade(s, 'background:radial-gradient(ellipse at 50% 45%, rgba(60,0,4,.25), rgba(0,0,0,.85))');
+  const n = el('div', 'abs', s.el); n.setAttribute('data-evitar', 'numero');
+  n.style.cssText = `left:360px;top:400px;white-space:nowrap;font:400 300px/1 DMS;color:${CREME};text-shadow:0 0 40px ${GLOW}`;
+  s.updates.push(t => { n.textContent = Math.round(71 * easeOut(prog(t, ws(35), ws(38)))); n.style.opacity = t >= ws(35) ? 1 : 0; n.style.transform = 'translate(-50%,-50%)'; });
+  seq(s, 360, 640, 38, 39, I(56, W));
+  line(s, 360, 860, [['só', ws(40), I(56, W)], ['6', ws(41), { ...B(150, VERM), glow: 'rgba(255,42,53,.6)' }]], {});
+  seq(s, 360, 1020, 42, 42, B(80, W));
+}
+
+/* 6 — eco de "ÚNICO" + bolas caindo */
+{
+  const s = scene(...S(5), VINHO, 0.02);
+  const out = ws(47) - 0.1;
+  seq(s, 360, 470, 43, 44, { ...B(84), outAt: out });
+  seq(s, 360, 610, 45, 46, { ...I(52), outAt: out }, { 46: { ...B(110, VERM), outAt: out } });
+  seq(s, 360, 260, 47, 49, I(48));
+  eco(s, 'ÚNICO', 360, 370, ws(50), 4, 116, 100);
+  seq(s, 360, 790, 51, 51, B(78, W));
+  seq(s, 360, 890, 52, 54, I(46));
+  seq(s, 360, 980, 55, 57, I(46), { 55: B(56) });
+  sticker(s, '26bd', 120, 1130, ws(55), 110, 20); sticker(s, '26bd', 610, 1160, ws(56), 90, -30);
+}
+
+/* 7 — números gigantes + chuteiras chovendo */
+{
+  const s = scene(...S(6), VINHO, 0.015);
+  seq(s, 360, 190, 58, 58, I(54));
+  const mk = (y, cor) => { const d = el('div', 'abs', s.el); d.setAttribute('data-evitar', 'numero');
+    d.style.cssText = `left:360px;top:${y}px;white-space:nowrap;font:400 240px/1 DMS;color:${cor};text-shadow:0 0 30px ${GLOW}`; return d; };
+  const a = mk(380, CREME), b = mk(760, W);
+  s.updates.push(t => { a.textContent = Math.round(19 * easeOut(prog(t, ws(59), ws(60)))); a.style.opacity = t >= ws(59) ? 1 : 0; a.style.transform = 'translate(-50%,-50%)';
+    b.textContent = Math.round(411 * easeOut(prog(t, ws(62), ws(65)))); b.style.opacity = t >= ws(62) ? 1 : 0; b.style.transform = 'translate(-50%,-50%)'; });
+  seq(s, 360, 560, 60, 60, B(70, ROSA));
+  seq(s, 360, 950, 65, 65, B(70, ROSA));
+  sticker(s, '1f45f', 110, 300, ws(59), 120, -25); sticker(s, '1f45f', 620, 640, ws(62), 120, 30); sticker(s, '1f45f', 120, 1120, ws(64), 100, 15);
+}
+
+/* 8 — joelho P&B + curativo */
+{
+  const s = scene(...S(7), '#000', 0.02);
+  fotoPB(s, A + 'joelho.jpg', { z0: 1.05, z1: 1.18, origin: '50% 65%' });
+  shade(s, `background:${VINHO};mix-blend-mode:multiply;opacity:.85`);
+  seq(s, 360, 330, 66, 68, I(52, W));
+  line(s, 360, 480, [['2', ws(69), { ...B(160, VERM), glow: 'rgba(255,42,53,.6)' }], ['cirurgias', ws(70), B(84, W)]], {});
+  sticker(s, '1fa79', 590, 640, ws(70) + 0.2, 120, -20);
+  seq(s, 360, 680, 71, 72, I(56, W));
+  seq(s, 360, 820, 73, 74, B(72));
+}
+
+/* 9 — CORTE DURO: foto P&B do Alan + frase */
+{
+  const s = scene(...S(8), '#000', 0.025);
+  fotoPB(s, A + 'foto_alan.jpg', { z0: 1.25, z1: 1.38, origin: '50% 22%', filter: 'grayscale(1) contrast(1.3) brightness(.4)' });
+  shade(s, 'background:linear-gradient(180deg, rgba(0,0,0,.2), rgba(20,0,2,.85) 70%)');
+  seq(s, 360, 560, 75, 76, B(80, W), { 75: { ...B(80, W) } });
+  s.words[s.words.length - 1].items[0].sp.innerHTML = '“NÃO';
+  seq(s, 360, 660, 77, 78, I(60, W));
+  seq(s, 360, 760, 79, 81, I(60, W));
+  seq(s, 360, 900, 82, 82, { ...B(150, VERM), glow: 'rgba(255,42,53,.65)', text: { 82: 'corpo”' } });
+  s.updates.push(t => { if (t > ws(82) && t < ws(82) + 0.25) s.el.style.transform += ` translate(${Math.sin(t * 140) * 7}px,0)`; });
+  credito(s, 'Foto: Sirli Freitas/Chapecoense · Wikimedia Commons (CC BY 2.0)');
+}
+
+/* 10 — "HOJE" gigante cortado + estádio */
+{
+  const s = scene(...S(9), VINHO, 0.02);
+  seq(s, 360, 230, 83, 85, I(52), { 84: B(80) });
+  gigante(s, 'HOJE', 470, ws(87), 360, 0.95, VERM);
+  sticker(s, '1f3df', 600, 640, ws(87) + 0.1, 110, 10);
+  seq(s, 360, 740, 88, 90, I(48), { 90: B(64, W) });
+  seq(s, 360, 840, 91, 93, I(48));
+  const pl = el('div', 'abs', s.el, `JUVENTUDE <span style="color:${VERM}">×</span> BOTAFOGO-SP`);
+  pl.setAttribute('data-evitar', 'placar');
+  pl.style.cssText = `left:360px;top:1020px;white-space:nowrap;font:400 46px DMS;color:${CREME};border-top:2px solid rgba(243,231,214,.5);border-bottom:2px solid rgba(243,231,214,.5);padding:14px 10px;text-shadow:0 0 20px ${GLOW}`;
+  s.updates.push(t => { const p = prog(t, ws(90), ws(90) + 0.35); pl.style.opacity = p; pl.style.transform = `translate(-50%,-50%) scaleX(${lerp(1.3, 1, easeOutExpo(p))})`; });
+}
+
+/* 11 — o único acento QUENTE: Série A em amarelo + troféus */
+{
+  const s = scene(...S(10), 'radial-gradient(ellipse at 50% 55%, #b0471a 0%, #5a0a0e 50%, #140103 90%)', 0.02);
+  seq(s, 360, 300, 94, 96, I(52));
+  seq(s, 360, 410, 97, 98, I(52), { 98: B(110, W) });
+  seq(s, 360, 540, 99, 100, I(52), { 100: B(70) });
+  seq(s, 360, 720, 101, 103, I(52), { 102: { ...B(150, AMAR), glow: 'rgba(245,184,46,.6)' }, 103: { ...B(150, AMAR), glow: 'rgba(245,184,46,.6)' } });
+  sticker(s, '1f3c6', 360, 1000, ws(102) + 0.1, 170, -8, true);
+  sticker(s, '2b50', 140, 940, ws(102) + 0.25, 70, 20, true); sticker(s, '2b50', 590, 1080, ws(103) + 0.1, 80, -25, true);
+}
+
+/* 12 — CTA: rodapé de post (modo escuro) + comentário digitando */
+{
+  const s = scene(...S(11), VINHO, 0.01);
+  seq(s, 360, 260, 104, 105, I(56), { 105: B(96) });
+  seq(s, 360, 380, 106, 106, I(66, VERM));
+  seq(s, 360, 520, 107, 109, I(50));
+  seq(s, 360, 630, 110, 110, B(100, W));
+  seq(s, 360, 750, 111, 112, I(50));
+  const post = el('div', 'abs', s.el, `<div style="display:flex;gap:22px;align-items:center">
+      <img src="${tw('2764')}" style="width:34px"><img src="${tw('1f4ac')}" style="width:34px;filter:grayscale(1) brightness(2)">
+      <svg width="32" height="32" viewBox="0 0 24 24"><path d="M3 11 L21 3 L14 21 L11 13 Z" fill="none" stroke="#fff" stroke-width="2" stroke-linejoin="round"/></svg></div>
+    <div style="font:600 18px Inter;color:#cfcfcf;margin-top:12px">Curtido por milhares de torcedores</div>
+    <div style="display:flex;align-items:center;gap:12px;margin-top:16px;padding:12px 16px;border-radius:30px;background:#262626">
+      <img src="${tw('1f49a')}" style="width:28px"><div id="cm" style="font:500 24px Inter;color:#fff;white-space:nowrap;min-height:30px"></div></div>`);
+  post.setAttribute('data-evitar', 'post');
+  post.style.cssText = 'left:360px;top:1010px;width:600px;padding:22px 24px;background:#121212;border-radius:22px;box-shadow:0 20px 50px rgba(0,0,0,.6)';
+  const cm = post.querySelector('#cm'); const msg = 'Obrigado, Alan! 💚';
+  s.updates.push(t => { const t0 = ws(111); const p = pop(t, t0, 0.4); post.style.opacity = t > t0 ? 1 : 0; post.style.transform = `translate(-50%,-50%) scale(${p})`;
+    const ch = [...msg]; cm.textContent = ch.slice(0, Math.floor(clamp((t - t0 - 0.5) * 16, 0, ch.length))).join(''); });
+}
+
+finalize({ duration: DUR, grain: 0.1, vignette: 0.7, preload: [A + 'foto_alan.jpg'],
+  flashes: [[C[1], 0.12, '255,42,53'], [C[2], 0.1], [C[3], 0.12, '255,42,53'], [C[5], 0.1], [C[6], 0.1], [C[7], 0.12, '255,42,53'], [C[9], 0.1], [C[10], 0.15, '245,184,46'], [C[11], 0.1]] });
+/* 16 fps estilizado (como a referência): o tempo das animações anda em degraus de 1/16 s */
+{ const r = window.renderAt; window.renderAt = t => r(Math.floor(t * 16 + 1e-6) / 16); }
+</script>
+</body></html>

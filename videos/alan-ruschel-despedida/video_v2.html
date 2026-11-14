@@ -1,0 +1,305 @@
+<!doctype html>
+<html><head><meta charset="utf-8"></head>
+<body>
+<script src="assets/words.js"></script>
+<script src="lib.js"></script>
+<script>
+/* V2 — Editorial documental (ref.: insta-trend-documentary-motion)
+   abre claro (gelo + grade + cursor + caixa tracejada) → vira azul-marinho; cards 3D, glass, círculo de luz com
+   pílula, microtipografia de revista nas bordas, corte seco para fundo com grão na frase, pôster no final. */
+const GELO = '#eef1f8', NAVY = '#0b1e3a', ROYAL = '#2d5fa8', AZUL = '#8fb3ff', W = '#ffffff', TINTA = '#13233f';
+const A = 'assets/';
+const N = window.WORDS.length - 1;
+const cut = i => ws(i) - 0.12;
+const C = [0, cut(6), cut(13), cut(23), cut(35), cut(43), cut(58), cut(66), cut(75), cut(83), cut(94), cut(104)];
+const DUR = Math.ceil((we(N) + 2.0) * 10) / 10;
+C.push(DUR);
+const S = k => [C[k], C[k + 1]];
+const sans = (px, w = 700) => FONTS.sans(px, w);
+const NAVYBG = `radial-gradient(ellipse at 50% 40%, #173a6e 0%, ${NAVY} 55%, #02060f 100%)`;
+
+/* ---------- helpers do estilo ---------- */
+function circulos(s, cor = 'rgba(45,95,168,.55)') {           // círculos de luz desfocados em parallax
+  const pts = [[80, 180, 220], [640, 420, 260], [120, 1050, 300], [620, 1180, 200]];
+  const ds = pts.map(([x, y, r]) => { const d = el('div', 'abs', s.el);
+    d.style.cssText = `left:${x - r}px;top:${y - r}px;width:${2 * r}px;height:${2 * r}px;border-radius:50%;background:${cor};filter:blur(40px)`; return d; });
+  s.updates.push(t => ds.forEach((d, i) => d.style.transform = `translate(${Math.sin(t * .6 + i) * 30}px,${Math.cos(t * .5 + i * 2) * 25}px)`));
+}
+function grade(s, cor = 'rgba(19,35,63,.08)') { const g = el('div', 'abs', s.el); g.style.cssText = `inset:0;background-image:linear-gradient(${cor} 1px,transparent 1px),linear-gradient(90deg,${cor} 1px,transparent 1px);background-size:36px 36px`; }
+function cursor(s, keys, clicks = []) {                       // keys: [[t,x,y],...]
+  const c = el('div', 'abs', s.el, `<svg width="44" height="44" viewBox="0 0 24 24"><path d="M3 2 L20 12 L12 13.5 L8 21 Z" fill="${TINTA}" stroke="#fff" stroke-width="1.4" stroke-linejoin="round"/></svg>`);
+  c.style.cssText = 'left:0;top:0;z-index:20;filter:drop-shadow(0 6px 10px rgba(0,0,0,.35))';
+  s.updates.push(t => {
+    let x = keys[0][1], y = keys[0][2];
+    for (let i = 0; i < keys.length - 1; i++) if (t >= keys[i][0]) { const p = easeInOut(prog(t, keys[i][0], keys[i + 1][0])); x = lerp(keys[i][1], keys[i + 1][1], p); y = lerp(keys[i][2], keys[i + 1][2], p); }
+    const k = clicks.some(ct => t > ct && t < ct + 0.15) ? 0.82 : 1;
+    c.style.transform = `translate(${x}px,${y}px) scale(${k})`; c.style.opacity = t >= keys[0][0] ? 1 : 0;
+  });
+}
+function tracejada(s, x, y, w, h, t0, cor = TINTA) {          // caixa de seleção tracejada que se desenha
+  const d = el('div', 'abs', s.el, `<svg width="${w + 8}" height="${h + 8}"><rect x="4" y="4" width="${w}" height="${h}" fill="none" stroke="${cor}" stroke-width="2" stroke-dasharray="8 6"/>
+    ${[[4, 4], [w + 4, 4], [4, h + 4], [w + 4, h + 4]].map(([a, b]) => `<rect x="${a - 5}" y="${b - 5}" width="10" height="10" fill="#fff" stroke="${cor}" stroke-width="2"/>`).join('')}</svg>`);
+  d.style.cssText = `left:${x - w / 2 - 4}px;top:${y - h / 2 - 4}px`;
+  const r = d.querySelector('rect'), L = 2 * (w + h);
+  s.updates.push(t => { const p = easeOut(prog(t, t0, t0 + 0.4)); r.setAttribute('stroke-dashoffset', 0); d.style.opacity = p > 0 ? 1 : 0;
+    d.style.clipPath = `inset(0 ${100 - p * 100}% 0 0)`; });
+  return d;
+}
+function pilula(s, x, y, txt, t0, t1 = 1e9, bgc = W, fg = NAVY) {  // rótulo em pílula com slide + motion blur
+  const p = el('div', 'abs', s.el, txt);
+  p.style.cssText = `left:${x}px;top:${y}px;white-space:nowrap;font:800 30px Inter;letter-spacing:.02em;color:${fg};background:${bgc};border:3px solid ${AZUL};padding:8px 30px;border-radius:40px;box-shadow:0 10px 30px rgba(0,0,0,.35)`;
+  s.updates.push(t => { const a = prog(t, t0, t0 + 0.3), b = prog(t, t1, t1 + 0.25);
+    const dx = (1 - easeOutExpo(a)) * 500 - easeIn(b) * 500, bl = Math.abs(dx) / 40;
+    p.style.opacity = a > 0 && b < 1 ? 1 : 0; p.style.transform = `translate(-50%,-50%) translateX(${dx}px)`; p.style.filter = bl > 0.3 ? `blur(${bl}px)` : ''; });
+  return p;
+}
+function vidro(s, x, y, w, h) {
+  const g = el('div', 'abs', s.el); g.setAttribute('data-evitar', 'vidro');
+  g.style.cssText = `left:${x - w / 2}px;top:${y - h / 2}px;width:${w}px;height:${h}px;border-radius:26px;background:rgba(255,255,255,.08);border:1.5px solid rgba(255,255,255,.28);backdrop-filter:blur(14px);box-shadow:0 30px 60px rgba(0,0,0,.4)`;
+  return g;
+}
+function credito(s, txt, escuro) {
+  const c = el('div', 'abs', s.el, txt);
+  c.style.cssText = `left:40px;bottom:34px;white-space:nowrap;font:500 15px Inter;color:${escuro ? 'rgba(19,35,63,.75)' : 'rgba(255,255,255,.75)'}`;
+}
+const fotoDuo = 'grayscale(1) contrast(1.1) brightness(1.05)';
+
+/* 1 — abertura CLARA: foto em grade + caixa tracejada + cursor */
+{
+  const s = scene(...S(0), GELO, 0.012);
+  grade(s); circulos(s, 'rgba(45,95,168,.30)');
+  const fr = el('div', 'abs', s.el, `<img src="${A}foto_alan.jpg" style="width:300px;height:360px;object-fit:cover;object-position:50% 20%;filter:${fotoDuo};display:block">
+    <div style="position:absolute;inset:0;background:${ROYAL};mix-blend-mode:screen;opacity:.35"></div>`);
+  fr.setAttribute('data-evitar', 'foto');
+  fr.style.cssText = 'left:360px;top:360px;box-shadow:0 30px 60px rgba(19,35,63,.25);overflow:hidden';
+  s.updates.push(t => { const p = prog(t, 0, 0.7); fr.style.opacity = p > 0 ? 1 : 0; fr.style.filter = `blur(${(1 - easeOut(p)) * 14}px)`;
+    fr.style.transform = `translate(-50%,-50%) scale(${lerp(1.15, 1, easeOut(p)) + t * 0.01})`; });
+  seq(s, 360, 660, 0, 1, { font: FONTS.dms(72), color: TINTA, from: '#b8c2d6' });
+  seq(s, 360, 745, 2, 3, { font: FONTS.dms(40, true), color: ROYAL, from: '#b8c2d6' });
+  seq(s, 360, 850, 4, 5, { font: FONTS.dms(86), color: TINTA, from: '#b8c2d6' }, { 5: { color: ROYAL } });
+  tracejada(s, 360, 850, 600, 108, ws(5) + 0.15);
+  cursor(s, [[0.3, 620, 1100], [ws(4), 560, 900], [ws(5) + 0.2, 640, 880], [C[1], 660, 870]], [ws(5) + 0.25]);
+  credito(s, 'Foto: Sirli Freitas/Chapecoense · Wikimedia Commons (CC BY 2.0)', true);
+  s.updates.push(t => { const p = prog(t, C[1] - 0.35, C[1]); if (p > 0) { s.el.style.filter = `blur(${p * 16}px)`; s.el.style.opacity = 1 - p; s.el.style.transform += ` translateX(${-easeIn(p) * 260}px)`; } });
+}
+
+/* 2 — vira AZUL-MARINHO: card 3D da partida + "do futebol" */
+{
+  const s = scene(...S(1), NAVYBG, 0.012);
+  circulos(s);
+  const card = el('div', 'abs', s.el, `<img src="${A}estadio.jpg" style="width:340px;height:300px;object-fit:cover;display:block;border-radius:10px">
+    <div style="display:flex;justify-content:space-between;margin-top:12px;font:800 20px Inter;color:${NAVY}"><span>ÚLTIMO JOGO</span><span style="color:${ROYAL}">14.11</span></div>`);
+  card.setAttribute('data-evitar', 'card');
+  card.style.cssText = 'left:360px;top:400px;padding:14px;background:#fff;border-radius:18px;box-shadow:0 40px 80px rgba(0,0,0,.55)';
+  s.updates.push(t => { const p = prog(t, s.start, s.start + 0.7), e = backOut(p);
+    card.style.opacity = p > 0 ? 1 : 0;
+    card.style.transform = `translate(-50%,-50%) perspective(900px) rotateY(${lerp(70, -14, e)}deg) rotateX(${lerp(20, 6, e)}deg) rotateZ(${lerp(-20, -5, e)}deg) translateY(${(1 - e) * 300}px)`; });
+  seq(s, 360, 790, 6, 7, { font: sans(52), color: W, from: '#2a3b5c' }, { 7: { color: AZUL } });
+  seq(s, 360, 885, 8, 10, { font: FONTS.dms(56, true), color: W, from: '#2a3b5c' });
+  seq(s, 360, 1010, 11, 12, { font: sans(52), color: W, from: '#2a3b5c' }, { 12: { font: FONTS.dms(96), color: W } });
+  const ul = el('div', 'abs', s.el); ul.style.cssText = `left:230px;top:1065px;height:6px;background:${AZUL};border-radius:3px`;
+  s.updates.push(t => ul.style.width = 330 * easeOut(prog(t, ws(12) + 0.2, ws(12) + 0.6)) + 'px');
+}
+
+/* 3 — círculo de luz com a foto + pílula com o nome */
+{
+  const s = scene(...S(2), NAVYBG, 0.012);
+  circulos(s);
+  const halo = el('div', 'abs', s.el); halo.style.cssText = `left:110px;top:150px;width:500px;height:500px;border-radius:50%;background:radial-gradient(circle, rgba(143,179,255,.55), rgba(45,95,168,.25) 55%, transparent 70%)`;
+  const ph = el('div', 'abs', s.el, `<img src="${A}foto_alan.jpg" style="width:380px;height:380px;object-fit:cover;object-position:50% 18%;display:block">`);
+  ph.setAttribute('data-evitar', 'foto');
+  ph.style.cssText = `left:360px;top:400px;border-radius:50%;overflow:hidden;border:6px solid ${AZUL};box-shadow:0 0 60px rgba(143,179,255,.45)`;
+  s.updates.push(t => { const p = pop(t, s.start + 0.05, 0.5); ph.style.transform = `translate(-50%,-50%) scale(${p * (1 + (t - s.start) * 0.015)})`; halo.style.opacity = p; });
+  pilula(s, 360, 670, 'ALAN RUSCHEL', ws(13));
+  seq(s, 360, 790, 15, 17, { font: sans(42, 600), color: W, from: '#2a3b5c' }, { 17: { color: AZUL } });
+  line(s, 360, 920, [['tem', ws(18)], ['37', ws(19), { font: FONTS.dms(110), color: W }], ['anos', ws(22)]], { font: sans(46), color: W, from: '#2a3b5c' });
+  credito(s, 'Foto: Sirli Freitas/Chapecoense · Wikimedia Commons (CC BY 2.0)');
+}
+
+/* 4 — 2016: vidro com data datilografada + rota desenhada */
+{
+  const s = scene(...S(3), NAVYBG, 0.012);
+  circulos(s, 'rgba(45,95,168,.4)');
+  line(s, 360, 280, [['Em', ws(23)], ['2016', ws(24), { font: FONTS.dms(120), color: W }]], { font: FONTS.dms(56, true), color: AZUL, from: '#2a3b5c' });
+  seq(s, 360, 420, 28, 30, { font: sans(46, 600), color: W, from: '#2a3b5c' });
+  seq(s, 360, 530, 31, 31, { font: FONTS.dms(92), color: W, from: '#2a3b5c' });
+  seq(s, 360, 640, 32, 34, { font: sans(46, 600), color: W, from: '#2a3b5c' }, { 34: { color: AZUL } });
+  const g = vidro(s, 360, 930, 600, 260);
+  const tp = typer(s.el, `left:110px;top:840px;white-space:nowrap;font:400 30px Type;color:${W}`, 'VOO 2933 · 29.11.2016', ws(25), 16);
+  const svg = el('div', 'abs', s.el, `<svg width="560" height="150" viewBox="0 0 560 150"><path d="M10 30 C 180 0, 330 20, 430 80 S 520 140, 540 140" fill="none" stroke="${AZUL}" stroke-width="3" stroke-dasharray="10 8"/><circle cx="540" cy="140" r="0" fill="#ff5a5a"/></svg>`);
+  svg.style.cssText = 'left:80px;top:890px';
+  const pth = svg.querySelector('path'), dot = svg.querySelector('circle');
+  s.updates.push(t => { tp.at(t); const p = prog(t, ws(29), ws(32) + 0.2);
+    svg.style.clipPath = `inset(0 ${100 - easeInOut(p) * 100}% 0 0)`; dot.setAttribute('r', t > ws(32) + 0.2 ? 9 + Math.sin(t * 10) * 2 : 0);
+    g.style.transform = `translateY(${(1 - easeOutExpo(prog(t, ws(25) - 0.2, ws(25) + 0.3))) * 200}px)`; g.style.opacity = t > ws(25) - 0.2 ? 1 : 0; });
+}
+
+/* 5 — 77 a bordo: 71 apagam, 6 acendem (infográfico) */
+{
+  const s = scene(...S(4), NAVYBG, 0.01);
+  const num = el('div', 'abs', s.el); num.setAttribute('data-evitar', 'numero');
+  num.style.cssText = `left:360px;top:250px;font:800 170px/1 Inter;letter-spacing:-.05em;color:${W};white-space:nowrap`;
+  seq(s, 360, 400, 38, 39, { font: FONTS.dms(54, true), color: AZUL, from: '#2a3b5c' });
+  const grid = el('div', 'abs', s.el); grid.setAttribute('data-evitar', 'grade');
+  grid.style.cssText = 'left:360px;top:640px;display:grid;grid-template-columns:repeat(11,34px);gap:14px;transform:translate(-50%,-50%)';
+  const dots = []; for (let i = 0; i < 77; i++) { const d = el('div', '', grid); d.style.cssText = 'width:34px;height:34px;border-radius:50%'; dots.push(d); }
+  const vivos = new Set([8, 19, 33, 45, 58, 70]);
+  s.updates.push(t => {
+    const p = prog(t, ws(35), ws(38)); num.textContent = Math.round(71 * easeOut(p)); num.style.opacity = t >= ws(35) ? 1 : 0;
+    num.style.transform = 'translate(-50%,-50%)';
+    const nOn = Math.floor(77 * prog(t, s.start + 0.1, ws(35)));
+    const apaga = Math.floor(71 * easeOut(p)); let k = 0;
+    dots.forEach((d, i) => { const viv = vivos.has(i);
+      let c = i < nOn ? 'rgba(255,255,255,.85)' : 'rgba(255,255,255,.12)';
+      if (!viv && t >= ws(35)) { k++; if (k <= apaga) c = 'rgba(255,255,255,.14)'; }
+      if (viv && t >= ws(41)) { c = AZUL; d.style.boxShadow = '0 0 18px rgba(143,179,255,.9)'; d.style.transform = `scale(${1 + 0.25 * pop(t, ws(41), 0.4)})`; }
+      d.style.background = c; });
+  });
+  line(s, 360, 890, [['Só', ws(40)], ['6', ws(41), { font: FONTS.dms(120), color: AZUL, glow: 'rgba(143,179,255,.5)' }]], { font: sans(52), color: W, from: '#2a3b5c' });
+  seq(s, 360, 1030, 42, 42, { font: FONTS.dms(74, true), color: W, from: '#2a3b5c' });
+}
+
+/* 6 — círculo com o túnel + pílulas trocando por slide */
+{
+  const s = scene(...S(5), NAVYBG, 0.012);
+  circulos(s);
+  const ph = el('div', 'abs', s.el, `<img src="${A}tunel.jpg" style="width:360px;height:360px;object-fit:cover;display:block;filter:saturate(.4) hue-rotate(80deg) brightness(.9)">`);
+  ph.setAttribute('data-evitar', 'foto');
+  ph.style.cssText = `left:360px;top:330px;border-radius:50%;overflow:hidden;border:6px solid ${AZUL};box-shadow:0 0 60px rgba(143,179,255,.4)`;
+  s.updates.push(t => { const p = pop(t, s.start + 0.05, 0.45); ph.style.transform = `translate(-50%,-50%) scale(${p}) rotate(${(t - s.start) * 4}deg)`; });
+  pilula(s, 360, 580, 'VOLTOU A JOGAR', ws(44), ws(50) - 0.15);
+  pilula(s, 360, 580, 'O ÚNICO', ws(50), ws(55) - 0.15, AZUL, NAVY);
+  pilula(s, 360, 580, 'ATÉ AGORA', ws(55));
+  const out = ws(47) - 0.1;
+  seq(s, 360, 730, 43, 44, { font: sans(52), color: W, from: '#2a3b5c', outAt: out });
+  seq(s, 360, 830, 45, 46, { font: FONTS.dms(64, true), color: W, from: '#2a3b5c', outAt: out });
+  seq(s, 360, 720, 47, 50, { font: sans(46, 600), color: W, from: '#2a3b5c' }, { 50: { color: AZUL } });
+  seq(s, 360, 820, 51, 51, { font: FONTS.dms(84), color: W, from: '#2a3b5c' });
+  seq(s, 360, 925, 52, 54, { font: sans(44, 600), color: W, from: '#2a3b5c' });
+  seq(s, 360, 1010, 55, 57, { font: sans(44, 600), color: W, from: '#2a3b5c' }, { 55: { color: AZUL } });
+}
+
+/* 7 — página de revista: números com fios desenhados */
+{
+  const s = scene(...S(6), GELO, 0.01);
+  grade(s);
+  const im = el('div', 'abs', s.el, `<img src="${A}chuteiras.jpg" style="width:720px;height:520px;object-fit:cover;object-position:50% 75%;filter:${fotoDuo};display:block"><div style="position:absolute;inset:0;background:linear-gradient(180deg,${GELO},transparent 40%)"></div>`);
+  im.style.cssText = 'left:0;top:760px;opacity:.55';
+  seq(s, 360, 200, 58, 58, { font: FONTS.dms(56, true), color: ROYAL, from: '#b8c2d6' });
+  const fio = (y, t0) => { const f = el('div', 'abs', s.el); f.style.cssText = `left:60px;top:${y}px;height:2px;background:${TINTA}`; s.updates.push(t => f.style.width = 600 * easeOut(prog(t, t0, t0 + 0.5)) + 'px'); };
+  fio(270, ws(58)); fio(480, ws(60)); fio(700, ws(65));
+  const n1 = el('div', 'abs', s.el); n1.setAttribute('data-evitar', 'n1'); n1.style.cssText = `left:60px;top:285px;font:800 180px/1 Inter;letter-spacing:-.06em;color:${TINTA};white-space:nowrap`;
+  const n2 = el('div', 'abs', s.el); n2.setAttribute('data-evitar', 'n2'); n2.style.cssText = `left:60px;top:500px;font:800 180px/1 Inter;letter-spacing:-.06em;color:${ROYAL};white-space:nowrap`;
+  s.updates.push(t => { n1.textContent = Math.round(19 * easeOut(prog(t, ws(59), ws(60)))); n1.style.opacity = t >= ws(59) ? 1 : 0;
+    n2.textContent = Math.round(411 * easeOut(prog(t, ws(62), ws(65)))); n2.style.opacity = t >= ws(62) ? 1 : 0; });
+  seq(s, 660, 420, 60, 60, { font: FONTS.dms(60, true), color: TINTA, from: '#b8c2d6', align: 'right' });
+  seq(s, 660, 640, 65, 65, { font: FONTS.dms(60, true), color: TINTA, from: '#b8c2d6', align: 'right' });
+}
+
+/* 8 — card inclinado com o joelho + cursor destacando "2 cirurgias" */
+{
+  const s = scene(...S(7), NAVYBG, 0.012);
+  circulos(s, 'rgba(45,95,168,.4)');
+  const card = el('div', 'abs', s.el, `<img src="${A}joelho.jpg" style="width:300px;height:380px;object-fit:cover;object-position:50% 60%;filter:${fotoDuo};display:block;border-radius:12px">`);
+  card.setAttribute('data-evitar', 'card');
+  card.style.cssText = 'left:360px;top:330px;padding:12px;background:#fff;border-radius:20px;box-shadow:0 40px 80px rgba(0,0,0,.55)';
+  s.updates.push(t => { const e = backOut(prog(t, s.start, s.start + 0.6)); card.style.opacity = t > s.start ? 1 : 0;
+    card.style.transform = `translate(-50%,-50%) perspective(900px) rotateY(${lerp(-60, 12, e)}deg) rotateZ(${lerp(15, 4, e)}deg)`; });
+  seq(s, 360, 650, 66, 68, { font: sans(46, 600), color: W, from: '#2a3b5c' });
+  const box = el('div', 'abs', s.el); box.style.cssText = `left:360px;top:770px;height:110px;background:${W};border-radius:10px;transform:translate(-50%,-50%)`;
+  s.updates.push(t => box.style.width = 470 * easeOutExpo(prog(t, ws(69) - 0.15, ws(69) + 0.2)) + 'px');
+  line(s, 360, 770, [['2', ws(69), { font: sans(90, 800) }], ['cirurgias', ws(70), { font: FONTS.dms(84) }]], { color: NAVY, from: '#c5cfe2' });
+  seq(s, 360, 900, 71, 72, { font: sans(48, 600), color: W, from: '#2a3b5c' });
+  seq(s, 360, 1010, 73, 74, { font: FONTS.dms(56, true), color: AZUL, from: '#2a3b5c' });
+  cursor(s, [[s.start, 700, 1200], [ws(69) - 0.2, 150, 800], [ws(70) + 0.4, 600, 800], [C[8], 620, 810]], [ws(69) - 0.15]);
+}
+
+/* 9 — CORTE SECO: fundo escuro com grão e poeira, frase em sans gigante */
+{
+  const s = scene(...S(8), '#03060c', 0.015);
+  const dust = el('div', 'abs', s.el); dust.style.cssText = 'inset:0;background-image:radial-gradient(rgba(255,255,255,.5) 1px,transparent 1.5px),radial-gradient(rgba(255,255,255,.3) 1px,transparent 1.5px);background-size:170px 230px,110px 140px;background-position:0 0,40px 70px';
+  s.updates.push(t => { dust.style.opacity = 0.35 + Math.sin(t * 23) * 0.1; dust.style.transform = `translateY(${-(t - s.start) * 12}px)`; });
+  const blue = el('div', 'abs', s.el); blue.style.cssText = 'left:-100px;top:700px;width:920px;height:700px;border-radius:50%;background:rgba(45,95,168,.35);filter:blur(80px)';
+  seq(s, 360, 440, 75, 76, { font: sans(78, 800), color: W, from: '#202838', text: { 75: '“NÃO' }, raw: false });
+  seq(s, 360, 560, 77, 78, { font: sans(78, 800), color: W, from: '#202838', text: { 77: 'LUTAR', 78: 'CONTRA' } });
+  seq(s, 360, 680, 79, 81, { font: sans(66, 800), color: W, from: '#202838', text: { 79: 'O', 80: 'MEU', 81: 'PRÓPRIO' } });
+  seq(s, 360, 840, 82, 82, { font: sans(140, 800), color: AZUL, glow: 'rgba(143,179,255,.45)', from: '#202838', text: { 82: 'CORPO”' } });
+  s.words.forEach(r => r.items.forEach(it => { if (it.sp.textContent === 'Não' || it.sp.textContent === 'posso') it.sp.textContent = it.sp.textContent.toUpperCase(); }));
+  s.updates.push(t => { if (t > ws(82) && t < ws(82) + 0.25) s.el.style.transform += ` translate(${Math.sin(t * 140) * 5}px,${Math.cos(t * 90) * 3}px)`; });
+  const sig = el('div', 'abs', s.el, '— ALAN RUSCHEL'); sig.style.cssText = `left:360px;top:960px;transform:translateX(-50%);white-space:nowrap;font:500 24px Inter;letter-spacing:.3em;color:rgba(255,255,255,.7)`;
+  s.updates.push(t => sig.style.opacity = prog(t, ws(82) + 0.3, ws(82) + 0.7));
+}
+
+/* 10 — ingresso editorial com código de barras */
+{
+  const s = scene(...S(9), NAVYBG, 0.012);
+  circulos(s);
+  seq(s, 360, 280, 83, 85, { font: sans(50), color: W, from: '#2a3b5c' }, { 84: { font: FONTS.dms(80, true), color: AZUL } });
+  seq(s, 360, 440, 86, 87, { font: sans(50), color: W, from: '#2a3b5c' }, { 87: { font: sans(130, 800), color: W } });
+  seq(s, 360, 600, 88, 90, { font: sans(44, 600), color: W, from: '#2a3b5c' });
+  seq(s, 360, 690, 91, 93, { font: sans(44, 600), color: W, from: '#2a3b5c' });
+  const bars = Array.from({ length: 34 }, (_, i) => `<div style="width:${[2, 4, 1, 3][i % 4]}px;height:70px;background:${NAVY}"></div>`).join('');
+  const tk = el('div', 'abs', s.el, `<div style="display:flex">
+      <div style="flex:1;padding:22px 26px;border-right:3px dashed #c5cfe2">
+        <div style="font:800 16px Inter;letter-spacing:.25em;color:${ROYAL}">SÉRIE B · ÚLTIMA RODADA</div>
+        <div style="font:400 44px/1.05 DMS;color:${NAVY};margin-top:10px">Juventude<br><span style="font-style:italic;color:${ROYAL};font-size:30px">×</span> Botafogo-SP</div>
+        <div style="font:700 18px Inter;color:#4a5878;margin-top:10px">SÁB · 14.11 · ALFREDO JACONI</div></div>
+      <div style="width:120px;display:flex;align-items:center;justify-content:center;gap:2px">${bars}</div></div>`);
+  tk.setAttribute('data-evitar', 'ingresso');
+  tk.style.cssText = 'left:360px;top:960px;width:620px;background:#fff;border-radius:18px;box-shadow:0 40px 80px rgba(0,0,0,.55);white-space:nowrap;overflow:hidden';
+  s.updates.push(t => { const e = backOut(prog(t, ws(90), ws(90) + 0.5)); tk.style.opacity = t > ws(90) ? 1 : 0;
+    tk.style.transform = `translate(-50%,-50%) perspective(900px) rotateX(${lerp(70, 8, e)}deg) rotateZ(-3deg) translateY(${(1 - e) * 200}px)`; });
+}
+
+/* 11 — barra de progresso Série B → Série A */
+{
+  const s = scene(...S(10), NAVYBG, 0.015);
+  circulos(s, 'rgba(143,179,255,.35)');
+  seq(s, 360, 330, 94, 96, { font: sans(50), color: W, from: '#2a3b5c' });
+  seq(s, 360, 450, 97, 98, { font: sans(50), color: W, from: '#2a3b5c' }, { 98: { font: FONTS.dms(96), color: AZUL } });
+  seq(s, 360, 580, 99, 100, { font: sans(50), color: W, from: '#2a3b5c' });
+  seq(s, 360, 740, 101, 103, { font: sans(50), color: W, from: '#2a3b5c' }, { 102: { font: sans(120, 800), color: W }, 103: { font: sans(120, 800), color: AZUL, glow: 'rgba(143,179,255,.5)' } });
+  const bar = el('div', 'abs', s.el, `<div style="display:flex;justify-content:space-between;font:800 22px Inter;letter-spacing:.15em;color:rgba(255,255,255,.75);margin-bottom:12px"><span>SÉRIE B</span><span>SÉRIE A</span></div>
+    <div style="height:18px;border-radius:9px;background:rgba(255,255,255,.15);overflow:hidden"><div id="fill" style="height:100%;width:0;background:linear-gradient(90deg,${ROYAL},${AZUL});border-radius:9px"></div></div>`);
+  bar.setAttribute('data-evitar', 'barra'); bar.style.cssText = 'left:90px;top:950px;width:540px';
+  const fill = bar.querySelector('#fill');
+  s.updates.push(t => { fill.style.width = 100 * easeInOut(prog(t, ws(98), ws(103) + 0.3)) + '%'; bar.style.opacity = prog(t, ws(97), ws(98)); });
+}
+
+/* 12 — CTA: vidro com comentários empilhando + pôster */
+{
+  const s = scene(...S(11), NAVYBG, 0.01);
+  circulos(s);
+  seq(s, 360, 250, 104, 105, { font: sans(52), color: W, from: '#2a3b5c' }, { 105: { font: FONTS.dms(90), color: W } });
+  seq(s, 360, 360, 106, 106, { font: FONTS.dms(66, true), color: AZUL, from: '#2a3b5c' });
+  seq(s, 360, 500, 107, 109, { font: sans(46, 600), color: W, from: '#2a3b5c' });
+  seq(s, 360, 600, 110, 110, { font: FONTS.dms(90), color: W, from: '#2a3b5c' });
+  seq(s, 360, 710, 111, 112, { font: sans(46, 600), color: W, from: '#2a3b5c' });
+  const g = vidro(s, 360, 990, 620, 330);
+  const msgs = [['torcedor_ju', 'Obrigado por tudo, guerreiro 💚'], ['forcachape', 'Exemplo de superação 👏'], ['você', '']];
+  const bub = msgs.map(([u, m], i) => { const b = el('div', 'abs', s.el, `<div style="display:flex;gap:12px;align-items:center"><div style="width:40px;height:40px;border-radius:50%;background:${i === 2 ? AZUL : '#c5cfe2'}"></div>
+      <div><div style="font:700 16px Inter;color:#556">${u}</div><div class="m" style="font:600 22px Inter;color:#111;white-space:nowrap;min-height:28px">${m}</div></div></div>`);
+    b.style.cssText = `left:360px;top:${880 + i * 92}px;width:560px;padding:12px 16px;background:rgba(255,255,255,.92);border-radius:16px;box-shadow:0 10px 24px rgba(0,0,0,.3)`;
+    return b; });
+  const typed = bub[2].querySelector('.m'); const msg = 'Obrigado, Alan! 💙';
+  s.updates.push(t => { bub.forEach((b, i) => { const t0 = ws(107) + i * 0.6; const p = pop(t, t0, 0.4); b.style.opacity = t > t0 ? 1 : 0; b.style.transform = `translate(-50%,-50%) scale(${p})`; });
+    g.style.opacity = prog(t, ws(107) - 0.3, ws(107)); const ch = [...msg]; typed.textContent = ch.slice(0, Math.floor(clamp((t - ws(107) - 1.6) * 16, 0, ch.length))).join(''); });
+}
+
+/* overlay de revista em todo o vídeo: código de barras, data, textos verticais e cantos */
+{
+  const s = scene(0, DUR, 'transparent', 0);
+  const bars = Array.from({ length: 26 }, (_, i) => `<div style="width:${[1, 3, 2, 1, 4][i % 5]}px;height:22px;background:currentColor"></div>`).join('');
+  const bc = el('div', 'abs', s.el, `<div style="font:600 11px Inter;letter-spacing:.2em;margin-bottom:4px">14.11.2026</div><div style="display:flex;gap:2px">${bars}</div>`);
+  bc.style.cssText = 'right:40px;top:40px;text-align:right';
+  const v1 = el('div', 'abs', s.el, 'EDIÇÃO ESPECIAL · A DESPEDIDA'); v1.style.cssText = 'left:18px;top:640px;white-space:nowrap;font:600 11px Inter;letter-spacing:.35em;transform:translate(-50%,-50%) rotate(-90deg);transform-origin:center;margin-left:4px';
+  const v2 = el('div', 'abs', s.el, 'JUVENTUDE · CHAPECOENSE · 19 TEMPORADAS'); v2.style.cssText = 'right:18px;top:640px;white-space:nowrap;font:600 11px Inter;letter-spacing:.35em;transform:translate(50%,-50%) rotate(90deg)';
+  const cant = [[24, 24, '0 0'], [656, 24, '90'], [24, 1216, '270'], [656, 1216, '180']].map(([x, y]) => { const c = el('div', 'abs', s.el); c.style.cssText = `left:${x}px;top:${y}px;width:40px;height:40px`; return c; });
+  cant[0].style.borderLeft = cant[0].style.borderTop = cant[1].style.borderRight = cant[1].style.borderTop = cant[2].style.borderLeft = cant[2].style.borderBottom = cant[3].style.borderRight = cant[3].style.borderBottom = '2px solid currentColor';
+  s.updates.push(t => { const claro = (t < C[1]) || (t >= C[6] && t < C[7]); s.el.style.color = claro ? 'rgba(19,35,63,.55)' : 'rgba(255,255,255,.45)'; s.el.style.display = (t >= C[8] && t < C[9]) ? 'none' : 'block'; });
+}
+
+finalize({ duration: DUR, grain: 0.06, vignette: 0.35, preload: [A + 'foto_alan.jpg', A + 'joelho.jpg'],
+  flashes: [[C[2], 0.1], [C[3], 0.1], [C[4], 0.1], [C[5], 0.1], [C[6], 0.12], [C[7], 0.12], [C[9], 0.1], [C[10], 0.1], [C[11], 0.12]] });
+</script>
+</body></html>
