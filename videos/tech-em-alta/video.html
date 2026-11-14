@@ -1,0 +1,310 @@
+<!doctype html>
+<html><head><meta charset="utf-8"></head>
+<body>
+<script src="assets/words.js"></script>
+<script src="lib.js"></script>
+<script>
+/* Tech em alta — 3 notícias da semana. Estilo: tech noturno (azul-noite + verde-lima), Inter + Anton,
+   objetos recortados flutuando, marca-texto, cursor clicando, barra de capítulos (referências do Pinterest). */
+const LIMA = '#c6f432', NOITE = '#06080d', BRANCO = '#ffffff', CINZA = '#8b93a5';
+const A = 'assets/';
+const N = window.WORDS.length - 1;
+const W = i => ws(i) - 0.12;
+const DUR = Math.ceil((we(N) + 2.2) * 10) / 10;
+const T = [0, W(11), W(20), W(35), W(49), W(61), W(67), W(79), W(93), W(99), W(110), W(119), W(128), DUR];
+
+const sans = (px, wt = 700) => FONTS.sans(px, wt);
+const caps = px => FONTS.caps(px);
+
+/* ---------- helpers ---------- */
+function techBg(s, c1 = '#1d3b8a', c2 = '#3f6b12') {
+  const b1 = el('div', 'abs', s.el), b2 = el('div', 'abs', s.el), g = el('div', 'abs', s.el);
+  b1.style.cssText = `width:900px;height:900px;border-radius:50%;background:radial-gradient(circle, ${c1}cc 0%, transparent 65%);filter:blur(20px)`;
+  b2.style.cssText = `width:800px;height:800px;border-radius:50%;background:radial-gradient(circle, ${c2}aa 0%, transparent 65%);filter:blur(20px)`;
+  g.style.cssText = `inset:-120px;background-image:linear-gradient(rgba(255,255,255,.055) 1px, transparent 1px),linear-gradient(90deg, rgba(255,255,255,.055) 1px, transparent 1px);background-size:60px 60px`;
+  s.updates.push(t => {
+    const k = t - s.start;
+    b1.style.transform = `translate(${-300 + Math.sin(t * 0.6) * 120}px, ${-260 + Math.cos(t * 0.45) * 140}px)`;
+    b2.style.transform = `translate(${220 + Math.cos(t * 0.5) * 140}px, ${620 + Math.sin(t * 0.7) * 120}px)`;
+    g.style.transform = `translateY(${(k * 18) % 60}px)`;
+  });
+}
+function whipIn(s, dir = 1, d = 0.24) {
+  s.updates.push(t => {
+    const p = prog(t, s.start, s.start + d); if (p >= 1) return;
+    const e = easeOutExpo(p);
+    s.el.style.transform += ` translateX(${dir * (1 - e) * 240}px)`;
+    s.el.style.filter = `blur(${(1 - e) * 16}px)`;
+  });
+}
+function obj(s, src, x, y, w, t0, o = {}) {
+  const im = el('img', 'abs', s.el); im.src = src;
+  im.style.cssText = `left:${x}px;top:${y}px;width:${w}px;filter:drop-shadow(0 30px 40px rgba(0,0,0,.55)) ${o.glow ? `drop-shadow(0 0 30px ${o.glow})` : ''};opacity:0`;
+  s.updates.push(t => {
+    const p = pop(t, t0, o.d || 0.5); const k = t - t0;
+    const fl = Math.sin(k * (o.fs || 1.6)) * (o.float ?? 10);
+    const rot = (o.rot || 0) + Math.sin(k * 1.1) * (o.wob ?? 3) + (1 - clamp(p)) * (o.spin ?? -25);
+    const dy = (o.drop ?? 160) * (1 - easeOutExpo(prog(t, t0, t0 + 0.45)));
+    im.style.opacity = t >= t0 ? clamp(prog(t, t0, t0 + 0.12)) : 0;
+    im.style.transform = `translate(-50%,-50%) translateY(${fl - dy}px) rotate(${rot}deg) scale(${p * (o.sc || 1)}) ${o.extra ? o.extra(t) : ''}`;
+  });
+  return im;
+}
+function mark(s, rec, k, t0, cor = LIMA) {   // marca-texto que varre a palavra
+  const it = rec.items[k], sp = it.sp; it.color = '#0a0c10'; it.from = '#0a0c10'; it.glow = null;
+  sp.style.backgroundImage = `linear-gradient(${cor}, ${cor})`; sp.style.backgroundRepeat = 'no-repeat';
+  sp.style.padding = '0 12px'; sp.style.borderRadius = '10px'; sp.style.backgroundSize = '0% 100%';
+  s.updates.push(t => { sp.style.backgroundSize = `${easeOutExpo(prog(t, t0, t0 + 0.3)) * 100}% 100%`; });
+}
+function tag(s, txt, t0, y = 150) {      // etiqueta de capítulo
+  const d = el('div', 'abs', s.el, txt);
+  d.style.cssText = `left:360px;top:${y}px;white-space:nowrap;font:400 34px/1 Anton;letter-spacing:.08em;color:#0a0c10;background:${LIMA};padding:12px 24px 10px;border-radius:999px;opacity:0`;
+  s.updates.push(t => { const p = pop(t, t0, 0.4); d.style.transform = `translate(-50%,-50%) scale(${p})`; d.style.opacity = t >= t0 ? 1 : 0; });
+}
+function cursor(s, x0, y0, x1, y1, t0, t1) {
+  const c = el('div', 'abs', s.el, `<svg width="54" height="54" viewBox="0 0 24 24"><path d="M3 2l7.5 19 2.4-7.6L20.5 11z" fill="#fff" stroke="#0a0c10" stroke-width="1.4" stroke-linejoin="round"/></svg>`);
+  const ring = el('div', 'abs', s.el); ring.style.cssText = `width:70px;height:70px;border-radius:50%;border:4px solid ${LIMA};opacity:0`;
+  c.style.left = '0px'; c.style.top = '0px'; ring.style.left = '0px'; ring.style.top = '0px';
+  s.updates.push(t => {
+    const p = easeInOut(prog(t, t0, t1));
+    const x = lerp(x0, x1, p), y = lerp(y0, y1, p) - Math.sin(p * Math.PI) * 60;
+    const click = prog(t, t1, t1 + 0.16), sc = 1 - Math.sin(click * Math.PI) * 0.22;
+    c.style.transform = `translate(${x}px, ${y}px) scale(${sc})`;
+    c.style.opacity = t >= t0 ? clamp(prog(t, t0, t0 + 0.15)) * (1 - prog(t, t1 + 0.7, t1 + 0.9)) : 0;
+    const r = prog(t, t1, t1 + 0.45);
+    ring.style.transform = `translate(${x1 - 35}px, ${y1 - 35}px) scale(${0.3 + r * 1.3})`;
+    ring.style.opacity = r > 0 && r < 1 ? 1 - r : 0;
+  });
+}
+function pill(s, txt, x, y, t0, o = {}) {
+  const d = el('div', 'abs', s.el, txt);
+  d.style.cssText = `left:${x}px;top:${y}px;white-space:nowrap;font:${o.font || '700 30px Inter'};color:${o.color || BRANCO};background:${o.bg || 'rgba(255,255,255,.08)'};border:2px solid ${o.border || 'rgba(255,255,255,.25)'};padding:${o.pad || '12px 24px'};border-radius:999px;backdrop-filter:blur(8px);opacity:0`;
+  s.updates.push(t => { const p = pop(t, t0, 0.4); d.style.transform = `translate(-50%,-50%) rotate(${o.rot || 0}deg) scale(${p})`; d.style.opacity = t >= t0 ? 1 : 0; });
+  return d;
+}
+function big(s, txt, x, y, px, cor, t0) {   // número gigante vazado no fundo
+  const d = el('div', 'abs', s.el, txt);
+  d.style.cssText = `left:${x}px;top:${y}px;white-space:nowrap;font:400 ${px}px/1 Anton;color:transparent;-webkit-text-stroke:3px ${cor};opacity:0`;
+  s.updates.push(t => { const p = easeOutExpo(prog(t, t0, t0 + 0.8)); d.style.opacity = p * 0.3; d.style.transform = `translate(-50%,-50%) scale(${1.25 - p * 0.25 + Math.max(0, t - t0) * 0.01})`; });
+}
+
+/* ================= CENA 1 — gancho ================= */
+{
+  const s = scene(T[0], T[1], NOITE, 0.012); techBg(s);
+  big(s, '3', 360, 470, 760, LIMA, 0);
+  obj(s, A + 'cartao.png', 170, 270, 300, 0.25, { rot: -18, glow: 'rgba(198,244,50,.25)' });
+  obj(s, A + 'esfera.png', 560, 300, 230, 0.55, { rot: 8 });
+  obj(s, A + 'controle.png', 520, 1090, 300, 0.85, { rot: 12 });
+  seq(s, 360, 600, 0, 2, { font: sans(56, 800), color: BRANCO });
+  seq(s, 360, 748, 3, 3, { font: caps(140), color: LIMA, glow: 'rgba(198,244,50,.35)' });
+  seq(s, 360, 890, 4, 7, { font: sans(48, 600), color: BRANCO });
+  seq(s, 360, 950, 8, 10, { font: sans(48, 600), color: BRANCO }, { 10: { color: LIMA } });
+}
+
+/* ================= CENA 2 — Nº1: ChatGPT faz compras ================= */
+{
+  const s = scene(T[1], T[2], NOITE, 0.014); techBg(s, '#0f5132', '#1d3b8a'); whipIn(s);
+  tag(s, 'NOTÍCIA 01', ws(11));
+  big(s, '01', 360, 470, 560, LIMA, ws(11));
+  obj(s, A + 'sacola.png', 360, 470, 400, ws(15), { rot: -6, drop: 260 });
+  seq(s, 360, 790, 13, 14, { font: sans(68, 800), color: BRANCO }, { 14: { color: LIMA } });
+  const r = seq(s, 360, 868, 15, 17, { font: sans(56, 700), color: BRANCO });
+  mark(s, r, 2, ws(17) + 0.05);
+  seq(s, 360, 936, 18, 19, { font: sans(56, 700), color: BRANCO });
+  cursor(s, 620, 1180, 470, 885, ws(16), ws(17));
+}
+
+/* ================= CENA 3 — ChatGPT Wallet + bandeiras ================= */
+{
+  const s = scene(T[2], T[3], NOITE, 0.012); techBg(s, '#1d3b8a', '#3f6b12'); whipIn(s, -1);
+  obj(s, A + 'cartao.png', 360, 380, 480, ws(21), { rot: -12, wob: 5, glow: 'rgba(198,244,50,.35)',
+    extra: t => `perspective(900px) rotateY(${Math.sin((t - ws(21)) * 1.4) * 18}deg)` });
+  seq(s, 360, 660, 20, 23, { font: sans(46, 600), color: BRANCO });
+  seq(s, 360, 770, 24, 24, { font: caps(92), color: LIMA, glow: 'rgba(198,244,50,.3)' });
+  seq(s, 360, 886, 25, 27, { font: sans(46, 600), color: BRANCO });
+  seq(s, 360, 942, 28, 29, { font: sans(46, 600), color: CINZA });
+  pill(s, 'Visa', 175, 1060, ws(30));
+  pill(s, 'Mastercard', 400, 1060, ws(31));
+  pill(s, 'American Express', 360, 1145, ws(33));
+}
+
+/* ================= CENA 4 — como funciona: IA escolhe, você confirma ================= */
+{
+  const s = scene(T[3], T[4], NOITE, 0.012); techBg(s, '#0f5132', '#1d3b8a'); whipIn(s);
+  obj(s, A + 'celular.png', 360, 400, 420, ws(35), { rot: 6, wob: 2 });
+  const scan = el('div', 'abs', s.el); scan.style.cssText = `left:250px;top:300px;width:220px;height:6px;border-radius:3px;background:${LIMA};box-shadow:0 0 24px ${LIMA};opacity:0`;
+  s.updates.push(t => { const p = prog(t, ws(45), ws(48) + 0.3); scan.style.opacity = p > 0 && p < 1 ? 1 : 0; scan.style.transform = `translateY(${Math.sin(p * Math.PI * 2) * 90 + 90}px)`; });
+  obj(s, tw('2705'), 545, 255, 130, we(48), { rot: 0, wob: 0, float: 4, drop: 0, spin: 0 });
+  seq(s, 360, 760, 35, 37, { font: sans(48, 700), color: BRANCO });
+  seq(s, 360, 818, 38, 40, { font: sans(48, 700), color: BRANCO }, { 40: { color: LIMA } });
+  seq(s, 360, 876, 41, 43, { font: sans(48, 600), color: BRANCO });
+  const r = seq(s, 360, 934, 44, 48, { font: sans(48, 600), color: BRANCO });
+  mark(s, r, 1, ws(45)); mark(s, r, 4, ws(48));
+}
+
+/* ================= CENA 5 — paga com cartão temporário ================= */
+{
+  const s = scene(T[4], T[5], NOITE, 0.012); techBg(s, '#1d3b8a', '#0f5132'); whipIn(s, -1);
+  obj(s, A + 'cartao.png', 360, 380, 470, ws(49), { rot: 10, glow: 'rgba(198,244,50,.3)' });
+  pill(s, '•••• •••• •••• 7392', 360, 570, ws(54), { font: '700 30px Inter', bg: 'rgba(10,12,16,.8)', border: LIMA, color: LIMA });
+  obj(s, tw('1f512'), 575, 230, 120, ws(56), { drop: 0, spin: 0, float: 5 });
+  seq(s, 360, 740, 49, 53, { font: sans(48, 600), color: BRANCO });
+  seq(s, 360, 832, 54, 55, { font: caps(76), color: LIMA, glow: 'rgba(198,244,50,.3)' });
+  const r = seq(s, 360, 922, 56, 60, { font: sans(48, 700), color: BRANCO });
+  mark(s, r, 3, ws(59)); mark(s, r, 4, ws(60));
+}
+
+/* ================= CENA 6 — só nos EUA ================= */
+{
+  const s = scene(T[5], T[6], NOITE, 0.016); techBg(s, '#1d3b8a', '#5a1020'); whipIn(s);
+  obj(s, tw('1f1fa-1f1f8'), 360, 430, 300, ws(63), { rot: -6, drop: 220 });
+  obj(s, tw('1f4cd'), 470, 300, 110, ws(65), { drop: 240, spin: 0, wob: 0 });
+  seq(s, 360, 690, 61, 62, { font: sans(52, 600), color: CINZA });
+  seq(s, 360, 752, 63, 64, { font: sans(52, 700), color: BRANCO });
+  seq(s, 360, 856, 65, 66, { font: caps(92), color: LIMA, glow: 'rgba(198,244,50,.3)' });
+}
+
+/* ================= CENA 7 — Nº2: Gemini 4 Hydrogen ================= */
+{
+  const s = scene(T[6], T[7], NOITE, 0.014);
+  bg(s, A + 'servidores.jpg', { z0: 1.25, z1: 1.08, filter: 'brightness(.32) saturate(1.2)' });
+  shade(s, 'background:linear-gradient(180deg, rgba(6,8,13,.3) 0%, rgba(6,8,13,.85) 60%, #06080d 100%)');
+  whipIn(s);
+  tag(s, 'NOTÍCIA 02', ws(67));
+  obj(s, A + 'esfera.png', 360, 400, 360, ws(69), { rot: 0, wob: 0, glow: 'rgba(80,170,255,.55)',
+    extra: t => `rotate(${(t - ws(69)) * 25}deg)` });
+  seq(s, 360, 650, 69, 72, { font: sans(48, 600), color: BRANCO });
+  seq(s, 360, 770, 73, 74, { font: caps(110), color: LIMA, glow: 'rgba(198,244,50,.3)' });
+  seq(s, 360, 915, 75, 75, { font: caps(110), color: BRANCO });
+  seq(s, 360, 1045, 76, 78, { font: sans(46, 600), color: CINZA });
+}
+
+/* ================= CENA 8 — 2,5x mais rápida + grátis ================= */
+{
+  const s = scene(T[7], T[8], NOITE, 0.012); techBg(s, '#1d3b8a', '#3f6b12'); whipIn(s, -1);
+  const streaks = el('div', 'abs', s.el); streaks.style.cssText = 'inset:0';
+  const L = [...Array(14)].map((_, i) => { const d = el('div', 'abs', streaks); d.style.cssText = `left:-400px;top:${80 + i * 34}px;height:${2 + (i % 3)}px;width:${260 + (i * 53) % 240}px;border-radius:2px;background:linear-gradient(90deg, transparent, ${i % 2 ? LIMA : '#5aa9ff'})`; return d; });
+  const num = el('div', 'abs', s.el); num.style.cssText = `left:360px;top:400px;white-space:nowrap;font:400 250px/1 Anton;color:${LIMA};text-shadow:0 0 40px rgba(198,244,50,.45)`;
+  s.updates.push(t => {
+    L.forEach((d, i) => { const sp = 900 + (i * 137) % 600; d.style.transform = `translateX(${((t - s.start) * sp + i * 210) % 1500}px)`; d.style.opacity = 0.55; });
+    const p = easeOut(prog(t, ws(79), we(81)));
+    num.textContent = (1 + 1.5 * p).toFixed(1).replace('.', ',') + 'x';
+    num.style.transform = `translate(-50%,-50%) scale(${0.6 + pop(t, ws(79), 0.45) * 0.4})`; num.style.opacity = t >= ws(79) ? 1 : 0;
+  });
+  seq(s, 360, 650, 80, 82, { font: sans(52, 700), color: BRANCO });
+  seq(s, 360, 714, 83, 84, { font: sans(52, 700), color: CINZA });
+  seq(s, 360, 778, 85, 87, { font: sans(52, 700), color: BRANCO }, { 86: { color: LIMA } });
+  seq(s, 360, 842, 88, 92, { font: sans(52, 700), color: BRANCO });
+  const st = el('div', 'abs', s.el, 'GRÁTIS');
+  st.style.cssText = `left:360px;top:990px;white-space:nowrap;font:400 76px Anton;color:${LIMA};border:6px solid ${LIMA};padding:0 26px;border-radius:14px;filter:url(#rough);opacity:0`;
+  s.updates.push(t => { const q = prog(t, ws(92), ws(92) + 0.18); st.style.opacity = q > 0 ? 1 : 0; st.style.transform = `translate(-50%,-50%) rotate(-7deg) scale(${q > 0 ? lerp(2.2, 1, easeOutExpo(q)) : 0})`; });
+}
+
+/* ================= CENA 9 — gancho de continuidade ================= */
+{
+  const s = scene(T[8], T[9], '#030406', 0.02); whipIn(s);
+  const g = el('div', 'abs', s.el); g.style.cssText = 'inset:0;background:repeating-linear-gradient(0deg, rgba(255,255,255,.04) 0 2px, transparent 2px 5px)';
+  seq(s, 360, 560, 93, 95, { font: sans(56, 700), color: BRANCO });
+  const r = seq(s, 360, 722, 96, 96, { font: caps(150), color: LIMA, glow: 'rgba(198,244,50,.4)' });
+  seq(s, 360, 884, 97, 98, { font: sans(56, 700), color: BRANCO });
+  r.extra = t => { const k = Math.floor(t * 30); return `translateX(${k % 7 === 0 ? (k % 2 ? 6 : -6) : 0}px)`; };
+  s.updates.push(t => { const k = Math.floor(t * 30); if (k % 7 === 0) r.items[0].sp.style.textShadow = `4px 0 #ff2bd6, -4px 0 #2bd9ff`; });
+}
+
+/* ================= CENA 10 — Nº3: GTA 6 dia 19 ================= */
+{
+  const s = scene(T[9], T[10], NOITE, 0.016);
+  bg(s, A + 'cidade.jpg', { z0: 1.3, z1: 1.08, filter: 'brightness(.55) saturate(1.25)' });
+  shade(s, 'background:linear-gradient(180deg, rgba(6,8,13,.2) 0%, rgba(6,8,13,.55) 45%, rgba(6,8,13,.92) 100%)');
+  whipIn(s);
+  tag(s, 'NOTÍCIA 03', ws(99));
+  const cal = el('div', 'abs', s.el, `<div style="background:${LIMA};color:#0a0c10;font:400 34px/1 Anton;letter-spacing:.1em;text-align:center;padding:12px 0 8px;border-radius:20px 20px 0 0">NOV</div><div style="background:#fff;color:#0a0c10;font:400 104px/1 Anton;text-align:center;padding:10px 0 14px;border-radius:0 0 20px 20px">19</div>`);
+  cal.style.cssText = 'left:560px;top:330px;width:170px;box-shadow:0 26px 40px rgba(0,0,0,.55);opacity:0';
+  s.updates.push(t => { const p = pop(t, ws(107), 0.5); const dy = 200 * (1 - easeOutExpo(prog(t, ws(107), ws(107) + 0.45)));
+    cal.style.opacity = t >= ws(107) ? 1 : 0; cal.style.transform = `translate(-50%,-50%) translateY(${-dy + Math.sin((t - ws(107)) * 1.6) * 8}px) rotate(${8 + Math.sin(t) * 2}deg) scale(${p})`; });
+  seq(s, 360, 600, 101, 103, { font: caps(170), color: BRANCO }, { 103: { color: LIMA, glow: 'rgba(198,244,50,.4)' } });
+  seq(s, 360, 762, 104, 106, { font: sans(52, 700), color: BRANCO });
+  seq(s, 360, 856, 107, 109, { font: caps(84), color: LIMA, glow: 'rgba(198,244,50,.3)' });
+}
+
+/* ================= CENA 11 — pré-carregamento recorde ================= */
+{
+  const s = scene(T[10], T[11], NOITE, 0.012);
+  bg(s, A + 'cidade.jpg', { z0: 1.12, z1: 1.2, filter: 'brightness(.3) blur(6px) saturate(1.2)' });
+  whipIn(s, -1);
+  const card = el('div', 'abs', s.el, `
+    <div style="font:700 24px Inter;letter-spacing:.12em;color:${CINZA}">PRÉ-CARREGAMENTO</div>
+    <div style="margin-top:18px;height:22px;border-radius:11px;background:rgba(255,255,255,.12);overflow:hidden"><div class="bar" style="height:100%;width:0;background:${LIMA};box-shadow:0 0 20px ${LIMA}"></div></div>
+    <div class="pct" style="margin-top:14px;font:400 64px/1 Anton;color:${BRANCO}">0%</div>
+    <svg width="460" height="150" style="margin-top:18px;display:block"><path class="ln" d="M0 140 L70 130 L140 132 L210 118 L280 120 L340 90 L390 40 L430 8 L460 0" fill="none" stroke="${LIMA}" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/></svg>`);
+  card.style.cssText = 'left:360px;top:420px;width:540px;padding:34px 40px;border-radius:28px;background:rgba(255,255,255,.07);border:2px solid rgba(255,255,255,.18);backdrop-filter:blur(14px);box-shadow:0 30px 60px rgba(0,0,0,.5)';
+  const bar = card.querySelector('.bar'), pct = card.querySelector('.pct'), ln = card.querySelector('.ln'); const LL = 560;
+  ln.style.strokeDasharray = LL;
+  pill(s, 'RECORDE', 540, 215, ws(114), { font: '400 40px Anton', bg: LIMA, border: LIMA, color: '#0a0c10', rot: -6 });
+  s.updates.push(t => {
+    const pc = pop(t, s.start + 0.05, 0.5); card.style.transform = `translate(-50%,-50%) scale(${pc})`;
+    const p = easeInOut(prog(t, ws(111), ws(113)));
+    bar.style.width = p * 100 + '%'; pct.textContent = Math.round(p * 100) + '%';
+    ln.style.strokeDashoffset = LL * (1 - easeOut(prog(t, ws(114), we(118))));
+  });
+  seq(s, 360, 790, 110, 111, { font: sans(52, 700), color: BRANCO });
+  seq(s, 360, 854, 112, 114, { font: sans(52, 700), color: BRANCO }, { 114: { color: LIMA } });
+  seq(s, 360, 918, 115, 118, { font: sans(52, 700), color: BRANCO });
+}
+
+/* ================= CENA 12 — Xbox One pela nuvem ================= */
+{
+  const s = scene(T[11], T[12], NOITE, 0.014); techBg(s, '#1d3b8a', '#0f5132'); whipIn(s);
+  const sv = el('div', 'abs', s.el, `<svg width="720" height="1280"><path class="dl" d="M500 300 C 470 360, 420 380, 380 410" fill="none" stroke="${LIMA}" stroke-width="5" stroke-dasharray="10 12" stroke-linecap="round"/></svg>`);
+  sv.style.cssText = 'left:0;top:0;opacity:0';
+  obj(s, tw('2601'), 520, 230, 220, ws(126), { drop: 0, spin: 0, float: 8, wob: 0 });
+  obj(s, A + 'controle.png', 340, 470, 440, ws(119), { rot: -10, wob: 4 });
+  s.updates.push(t => { sv.style.opacity = clamp(prog(t, ws(126), ws(126) + 0.3)); sv.querySelector('.dl').style.strokeDashoffset = -(t * 60); });
+  seq(s, 360, 760, 119, 124, { font: sans(48, 600), color: BRANCO });
+  seq(s, 360, 880, 125, 125, { font: caps(120), color: LIMA, glow: 'rgba(198,244,50,.3)' });
+  seq(s, 360, 1012, 126, 127, { font: sans(52, 700), color: BRANCO });
+}
+
+/* ================= CENA 13 — CTA ================= */
+{
+  const s = scene(T[12], T[13], NOITE, 0.01); techBg(s, '#3f6b12', '#1d3b8a'); whipIn(s);
+  seq(s, 360, 290, 128, 129, { font: caps(140), color: LIMA, glow: 'rgba(198,244,50,.35)' });
+  seq(s, 360, 446, 130, 132, { font: sans(52, 700), color: BRANCO });
+  seq(s, 360, 508, 133, 134, { font: sans(52, 700), color: BRANCO });
+  const r = seq(s, 360, 570, 135, 138, { font: sans(52, 700), color: BRANCO });
+  mark(s, r, 3, ws(138));
+  const poll = el('div', 'abs', s.el, `
+    <div style="display:flex;gap:18px">
+      <div class="o1" style="flex:1;height:96px;border-radius:22px;background:rgba(255,255,255,.08);border:2px solid rgba(255,255,255,.25);font:400 48px/92px Anton;color:${BRANCO};text-align:center">SIM</div>
+      <div class="o2" style="flex:1;height:96px;border-radius:22px;background:rgba(255,255,255,.08);border:2px solid rgba(255,255,255,.25);font:400 48px/92px Anton;color:${BRANCO};text-align:center">NUNCA</div>
+    </div>`);
+  poll.style.cssText = 'left:360px;top:760px;width:600px;opacity:0';
+  const box = el('div', 'abs', s.el, `<span class="tx"></span><span class="cr" style="color:${LIMA}">|</span>`);
+  box.style.cssText = `left:360px;top:1090px;width:600px;white-space:nowrap;padding:24px 30px;border-radius:999px;background:rgba(255,255,255,.08);border:2px solid ${LIMA};font:600 32px Inter;color:${BRANCO};opacity:0`;
+  const tx = box.querySelector('.tx'), cr = box.querySelector('.cr'); const msg = 'Eu deixaria, mas com limite…';
+  seq(s, 360, 990, 139, 141, { font: sans(46, 700), color: CINZA, livre: true });
+  cursor(s, 640, 1200, 250, 770, ws(138) + 0.2, ws(139) + 0.1);
+  s.updates.push(t => {
+    const p = pop(t, ws(129), 0.45); poll.style.transform = `translate(-50%,-50%) scale(${p})`; poll.style.opacity = t >= ws(129) ? 1 : 0;
+    const sel = t >= ws(139) + 0.1; const o1 = poll.querySelector('.o1');
+    o1.style.background = sel ? LIMA : 'rgba(255,255,255,.08)'; o1.style.color = sel ? '#0a0c10' : BRANCO; o1.style.borderColor = sel ? LIMA : 'rgba(255,255,255,.25)';
+    const b = pop(t, ws(140), 0.4); box.style.transform = `translate(-50%,-50%) scale(${b})`; box.style.opacity = t >= ws(140) ? 1 : 0;
+    tx.textContent = msg.slice(0, Math.floor(clamp((t - ws(141) - 0.2) * 20, 0, msg.length)));
+    cr.style.opacity = Math.floor(t * 2.5) % 2 ? 1 : 0;
+  });
+}
+
+/* ---------- barra de capítulos (fora das cenas) ---------- */
+const prog3 = el('div', 'abs', stage, [0, 1, 2].map(i => `<div style="flex:1;height:6px;border-radius:3px;background:rgba(255,255,255,.18);overflow:hidden"><div class="f${i}" style="height:100%;width:0;background:${LIMA}"></div></div>`).join(''));
+prog3.style.cssText = 'left:60px;top:52px;width:600px;display:flex;gap:12px;opacity:0;z-index:5';
+const CH = [[W(11), W(67)], [W(67), W(99)], [W(99), W(128)]];
+
+finalize({ duration: DUR, grain: 0.06, vignette: 0.45,
+  flashes: [[T[1], 0.14, '198,244,50'], [T[6], 0.14, '198,244,50'], [T[9], 0.14, '198,244,50'], [T[8], 0.1], [T[12], 0.12]],
+  preload: ['cartao', 'celular', 'esfera', 'controle', 'sacola'].map(n => A + n + '.png') });
+globalUpdate = t => {
+  prog3.style.opacity = t >= W(11) && t < W(128) ? 1 : 0;
+  CH.forEach(([a, b], i) => { prog3.querySelector('.f' + i).style.width = clamp(prog(t, a, b)) * 100 + '%'; });
+};
+</script>
+</body></html>
