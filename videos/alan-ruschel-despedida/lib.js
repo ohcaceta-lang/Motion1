@@ -67,7 +67,7 @@ function line(s, x, y, words, o = {}) {
     return { sp, t0, size: f.sz, color: w.color || o.color || '#ffffff', glow: w.glow ?? o.glow, gap: w.gap ?? f.sz * 0.26,
       from: w.from || o.from || '#3a3433', dur: w.dur || o.dur || 0.28, out: w.out ?? o.out };
   });
-  const rec = { L, items, align: o.align || 'center', natural: null, extra: null, outAt: o.outAt };
+  const rec = { L, items, align: o.align || 'center', natural: null, extra: null, outAt: o.outAt, livre: o.livre };
   s.words.push(rec); return rec;
 }
 function updateLine(rec, t) {
@@ -139,6 +139,31 @@ function bg(s, src, o = {}) {
   s.updates.push(t => { const p = easeInOut(prog(t, s.start, s.end)); im.style.transform = `translate(${px * p}px, ${py * p}px) scale(${lerp(z0, z1, p)})`; });
   return im;
 }
+/* ---------- bloco de texto organizado (use SEMPRE para o texto de uma cena) ----------
+   Empilha linhas num bloco compacto e centralizado em torno de yc, com espaço entre linhas proporcional à fonte
+   (centros a ~1,25 × a fonte), sem buracos. rows: lista de
+     { seq: [i0, i1, opts, porPalavra] }      → linha da narração (como seq)
+     { line: [palavras, opts] }               → linha livre (como line)
+     { el: elemento, h: alturaPx }            → contador, cartão ou imagem dentro do fluxo (o elemento precisa usar translate(-50%,-50%))
+     { gap: px }                              → respiro extra pequeno (use com moderação, ≤ 24 px)
+   Devolve as linhas criadas. Ex.: bloco(s, 640, [{seq:[0,1,{font:FONTS.sans(54)}]}, {seq:[2,3,{font:FONTS.dms(110)}]}]); */
+function bloco(s, yc, rows, o = {}) {
+  const x = o.x ?? 360, lh = o.lh ?? 1.25;
+  const tamanho = r => { if (r.el) return r.h; if (r.gap) return r.gap;
+    const [opts = {}, per = {}] = r.seq ? [r.seq[2], r.seq[3]] : [r.line[1], {}];
+    let m = (opts.font || FONTS.sans(40)).sz;
+    Object.values(per || {}).forEach(w => { if (w && w.font) m = Math.max(m, w.font.sz); });
+    if (r.line) r.line[0].forEach(w => { if (w[2] && w[2].font) m = Math.max(m, w[2].font.sz); });
+    return m * lh; };
+  const hs = rows.map(tamanho), total = hs.reduce((a, b) => a + b, 0);
+  let y = yc - total / 2; const out = [];
+  rows.forEach((r, k) => { const cy = y + hs[k] / 2; y += hs[k];
+    if (r.el) { r.el.style.top = cy + 'px'; if (o.x != null) r.el.style.left = x + 'px'; return; }
+    if (r.gap) return;
+    out.push(r.seq ? seq(s, x, cy, r.seq[0], r.seq[1], { align: o.align, ...(r.seq[2] || {}) }, r.seq[3] || {}) : line(s, x, cy, r.line[0], { align: o.align, ...(r.line[1] || {}) }));
+  });
+  return out;
+}
 function shade(s, css) { const d = el('div', 'abs', s.el); d.style.cssText = 'inset:0;' + css; return d; }
 
 /* ---------- verificação automática de layout (quebra de texto e espaçamento) ----------
@@ -147,10 +172,13 @@ function shade(s, css) { const d = el('div', 'abs', s.el); d.style.cssText = 'in
    - CORTE:      linha passa da margem segura lateral (40 px de cada lado no canvas de 720) ou sai da tela em cima/embaixo;
    - SOBREPOSIÇÃO: duas linhas visíveis ao mesmo tempo se cruzam;
    - APERTADO:   distância vertical entre linhas vizinhas menor que 22% da altura da linha menor;
+   - ESPAÇADO:   linhas vizinhas do mesmo bloco com espaço maior que 65% da altura da linha maior (texto "solto",
+                 com buracos entre as linhas). Linhas que são de propósito um bloco separado (rótulo no topo,
+                 crédito no rodapé) devem ser criadas com line(..., { livre: true }) e ficam fora desta regra;
    - ELEMENTO:   texto cruzando um elemento marcado com data-evitar (fotos, cartões, carimbos que não devem cobrir texto).
    Retorna uma lista de problemas [{t, tipo, texto, detalhe}]. */
 window.layoutCheck = function (o = {}) {
-  const M = o.margem ?? 40, F = o.folga ?? 0.22, out = [];
+  const M = o.margem ?? 40, F = o.folga ?? 0.22, FX = o.folgaMax ?? 0.65, out = [];
   const visRect = el => { const cs = getComputedStyle(el); if (cs.visibility === 'hidden' || +cs.opacity < 0.5) return null;
     let p = el; while (p && p !== stage) { const c = getComputedStyle(p); if (c.display === 'none' || +c.opacity < 0.3) return null; p = p.parentElement; }
     const r = el.getBoundingClientRect(); return r.width > 2 && r.height > 2 ? r : null; };
@@ -176,6 +204,16 @@ window.layoutCheck = function (o = {}) {
         if (gap < 0) out.push({ t, tipo: 'SOBREPOSIÇÃO', texto: `"${txt(linhas[i].rec)}" × "${txt(linhas[j].rec)}"`, detalhe: `cruzam ${Math.round(-gap)} px` });
         else if (gap < min) out.push({ t, tipo: 'APERTADO', texto: `"${txt(linhas[i].rec)}" × "${txt(linhas[j].rec)}"`, detalhe: `espaço ${Math.round(gap)} px (mínimo ${Math.round(min)} px)` });
       }
+      // ESPAÇADO: para cada linha, a vizinha logo abaixo (na mesma coluna) não pode ficar longe demais
+      const evs = [...s.el.querySelectorAll('[data-evitar]')].map(visRect).filter(Boolean);
+      linhas.forEach((A, i) => { if (A.rec.livre) return; const a = tight(A.r); let best = null, bg = 1e9;
+        linhas.forEach((B, j) => { if (i === j || B.rec.livre) return; const b = tight(B.r);
+          if (a.right <= b.left || b.right <= a.left || b.top <= a.top) return;
+          const g = b.top - a.bottom; if (g >= 0 && g < bg) { bg = g; best = { B, b }; } });
+        // um contador/cartão/foto (data-evitar) entre as duas linhas faz parte do bloco: não é buraco
+        if (best && evs.some(er => er.top < best.b.top && er.bottom > a.bottom && er.left < Math.max(a.right, best.b.right) && er.right > Math.min(a.left, best.b.left))) return;
+        if (!best) return; const max = FX * Math.max(a.height, best.b.height);
+        if (bg > max) out.push({ t, tipo: 'ESPAÇADO', texto: `"${txt(A.rec)}" × "${txt(best.B.rec)}"`, detalhe: `espaço ${Math.round(bg)} px (máximo ${Math.round(max)} px): aproxime as linhas ou marque { livre: true } se for bloco separado` }); });
       [...s.el.querySelectorAll('[data-evitar]')].forEach(e => { const er = visRect(e); if (!er) return;
         linhas.forEach(({ rec, r }) => { const a = tight(r);
           if (a.left < er.right && a.right > er.left && a.top < er.bottom && a.bottom > er.top)

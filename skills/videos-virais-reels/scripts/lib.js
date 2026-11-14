@@ -139,6 +139,31 @@ function bg(s, src, o = {}) {
   s.updates.push(t => { const p = easeInOut(prog(t, s.start, s.end)); im.style.transform = `translate(${px * p}px, ${py * p}px) scale(${lerp(z0, z1, p)})`; });
   return im;
 }
+/* ---------- bloco de texto organizado (use SEMPRE para o texto de uma cena) ----------
+   Empilha linhas num bloco compacto e centralizado em torno de yc, com espaço entre linhas proporcional à fonte
+   (centros a ~1,25 × a fonte), sem buracos. rows: lista de
+     { seq: [i0, i1, opts, porPalavra] }      → linha da narração (como seq)
+     { line: [palavras, opts] }               → linha livre (como line)
+     { el: elemento, h: alturaPx }            → contador, cartão ou imagem dentro do fluxo (o elemento precisa usar translate(-50%,-50%))
+     { gap: px }                              → respiro extra pequeno (use com moderação, ≤ 24 px)
+   Devolve as linhas criadas. Ex.: bloco(s, 640, [{seq:[0,1,{font:FONTS.sans(54)}]}, {seq:[2,3,{font:FONTS.dms(110)}]}]); */
+function bloco(s, yc, rows, o = {}) {
+  const x = o.x ?? 360, lh = o.lh ?? 1.25;
+  const tamanho = r => { if (r.el) return r.h; if (r.gap) return r.gap;
+    const [opts = {}, per = {}] = r.seq ? [r.seq[2], r.seq[3]] : [r.line[1], {}];
+    let m = (opts.font || FONTS.sans(40)).sz;
+    Object.values(per || {}).forEach(w => { if (w && w.font) m = Math.max(m, w.font.sz); });
+    if (r.line) r.line[0].forEach(w => { if (w[2] && w[2].font) m = Math.max(m, w[2].font.sz); });
+    return m * lh; };
+  const hs = rows.map(tamanho), total = hs.reduce((a, b) => a + b, 0);
+  let y = yc - total / 2; const out = [];
+  rows.forEach((r, k) => { const cy = y + hs[k] / 2; y += hs[k];
+    if (r.el) { r.el.style.top = cy + 'px'; if (o.x != null) r.el.style.left = x + 'px'; return; }
+    if (r.gap) return;
+    out.push(r.seq ? seq(s, x, cy, r.seq[0], r.seq[1], { align: o.align, ...(r.seq[2] || {}) }, r.seq[3] || {}) : line(s, x, cy, r.line[0], { align: o.align, ...(r.line[1] || {}) }));
+  });
+  return out;
+}
 function shade(s, css) { const d = el('div', 'abs', s.el); d.style.cssText = 'inset:0;' + css; return d; }
 
 /* ---------- verificação automática de layout (quebra de texto e espaçamento) ----------
@@ -180,10 +205,13 @@ window.layoutCheck = function (o = {}) {
         else if (gap < min) out.push({ t, tipo: 'APERTADO', texto: `"${txt(linhas[i].rec)}" × "${txt(linhas[j].rec)}"`, detalhe: `espaço ${Math.round(gap)} px (mínimo ${Math.round(min)} px)` });
       }
       // ESPAÇADO: para cada linha, a vizinha logo abaixo (na mesma coluna) não pode ficar longe demais
+      const evs = [...s.el.querySelectorAll('[data-evitar]')].map(visRect).filter(Boolean);
       linhas.forEach((A, i) => { if (A.rec.livre) return; const a = tight(A.r); let best = null, bg = 1e9;
         linhas.forEach((B, j) => { if (i === j || B.rec.livre) return; const b = tight(B.r);
           if (a.right <= b.left || b.right <= a.left || b.top <= a.top) return;
           const g = b.top - a.bottom; if (g >= 0 && g < bg) { bg = g; best = { B, b }; } });
+        // um contador/cartão/foto (data-evitar) entre as duas linhas faz parte do bloco: não é buraco
+        if (best && evs.some(er => er.top < best.b.top && er.bottom > a.bottom && er.left < Math.max(a.right, best.b.right) && er.right > Math.min(a.left, best.b.left))) return;
         if (!best) return; const max = FX * Math.max(a.height, best.b.height);
         if (bg > max) out.push({ t, tipo: 'ESPAÇADO', texto: `"${txt(A.rec)}" × "${txt(best.B.rec)}"`, detalhe: `espaço ${Math.round(bg)} px (máximo ${Math.round(max)} px): aproxime as linhas ou marque { livre: true } se for bloco separado` }); });
       [...s.el.querySelectorAll('[data-evitar]')].forEach(e => { const er = visRect(e); if (!er) return;

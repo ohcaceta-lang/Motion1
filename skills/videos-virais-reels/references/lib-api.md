@@ -26,6 +26,11 @@ Ordem dos scripts na página: `assets/words.js` (define `window.WORDS`) → `lib
 - `el(tag, classe, pai, html)`: cria um elemento. Use a classe `'abs'` para posicionamento absoluto.
 - `.ht`: retícula de halftone (multiply).
 
+## Bloco de texto organizado (use sempre)
+- `bloco(s, yc, rows, {x, lh=1.25, align})`: empilha as linhas de uma cena num bloco compacto centralizado em `yc`.
+  `rows`: `{seq:[i0,i1,opts,porPalavra]}`, `{line:[palavras,opts]}`, `{el, h}` (contador/cartão no fluxo, com translate(-50%,-50%)), `{gap: px}`.
+  Devolve as linhas criadas (ex.: `b[1].L.style.top` para alinhar um sublinhado).
+
 ## Texto cinético
 - `seq(s, x, y, i0, i1, opts, porPalavra)`: linha com as palavras `i0..i1` da narração, cada uma entrando no tempo
   em que é falada (blur → nítido, escala 1,2 → 1, cor apagada → final), e a linha se recentralizando suavemente.
