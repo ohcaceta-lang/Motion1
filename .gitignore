@@ -1,0 +1,5 @@
+node_modules/
+videos/*/mudo.mp4
+videos/*/mix.wav
+videos/*/render.log
+videos/*/assets/*.wav

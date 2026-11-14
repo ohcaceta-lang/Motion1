@@ -1,0 +1,258 @@
+<!doctype html>
+<html><head><meta charset="utf-8"></head>
+<body>
+<script src="assets/words.js"></script>
+<script src="lib.js"></script>
+<script>
+/* Nvidia sem Jensen Huang — ref.: vender-sem-palavras-insiderforce
+   "canvas infinito": um quadro cinza-claro com grade fina onde a câmera desliza de uma estação à outra
+   (conectores tracejados se desenhando no caminho), objetos 3D em P&B recortados com sombra, caixas tracejadas
+   de seleção, hierarquia só por peso/tamanho de uma sans (cinza fino + preto bold), órbita de rótulos em volta da foto.
+   Só 3 cortes secos marcam os atos: a queda → o escândalo → as consequências → CTA em fundo branco. */
+const A = 'assets/';
+const N = window.WORDS.length - 1;
+const cut = i => ws(i) - 0.12;
+const C = [0, cut(24), cut(65), cut(96)];
+const DUR = Math.ceil((we(N) + 2.0) * 10) / 10;
+C.push(DUR);
+const S = k => [C[k], C[k + 1]];
+const FUNDO = '#ededed', PRETO = '#111111', CINZA = '#8a8a8a', FROM = '#d0d0d0', VERDE = '#76b900';
+const reg = px => FONTS.sans(px, 500), bold = px => FONTS.sans(px, 800);
+const NV = { text: { 21: 'Nvidia', 64: 'Nvidia', 81: 'Colette', 82: 'Kress', 103: 'Nvidia' } };
+const pb = 'grayscale(1) contrast(1.08)';
+const sombra = 'drop-shadow(0 26px 22px rgba(0,0,0,.22))';
+const _lc = window.layoutCheck; window.layoutCheck = o => { window.__chk = true; const r = _lc(o); window.__chk = false; return r; };
+
+/* ---------- canvas infinito ---------- */
+function canvas(s) {
+  const cv = el('div', 'abs', s.el); cv.style.cssText = 'left:0;top:0;width:0;height:0;overflow:visible';
+  const g = el('div', 'abs', cv); g.style.cssText = `left:-2400px;top:-2400px;width:6000px;height:6000px;background-image:linear-gradient(rgba(0,0,0,.055) 1px,transparent 1px),linear-gradient(90deg,rgba(0,0,0,.055) 1px,transparent 1px);background-size:40px 40px`;
+  const sc = { el: cv, words: s.words, updates: s.updates, start: s.start, end: s.end };
+  const est = [];   // estações: {x, y, t0 (chegada começa), t1 (chegada termina)}
+  sc.estacao = (x, y, i0) => { const prev = est[est.length - 1];
+    const t0 = prev ? Math.max(we(i0 - 1) + 0.08, ws(i0) - 0.45) : s.start, t1 = prev ? t0 + 0.5 : s.start;
+    est.push({ x, y, t0, t1 }); if (prev) prev.sai = t1;
+    if (prev) conector(sc, prev.x, prev.y, x, y, t0, t1);
+    return { t0, t1, get sai() { return est[est.indexOf(this._e)]?.sai; } };
+  };
+  sc.saida = k => est[k].sai;
+  s.updates.push(t => {
+    let cx = est[0].x, cy = est[0].y;
+    for (let k = 1; k < est.length; k++) if (t >= est[k].t0) { const p = easeInOut(prog(t, est[k].t0, est[k].t1)); cx = lerp(est[k - 1].x, est[k].x, p); cy = lerp(est[k - 1].y, est[k].y, p); }
+    const dx = window.__chk ? 0 : Math.sin(t * 0.7) * 6, dy = window.__chk ? 0 : Math.cos(t * 0.5) * 5;
+    cv.style.transform = `translate(${360 - cx + dx}px, ${640 - cy + dy}px)`;
+  });
+  return sc;
+}
+function conector(sc, x0, y0, x1, y1, t0, t1) {
+  const minx = Math.min(x0, x1) - 40, miny = Math.min(y0, y1) - 40, w = Math.abs(x1 - x0) + 80, h = Math.abs(y1 - y0) + 80;
+  const d = el('div', 'abs', sc.el, `<svg width="${w}" height="${h}"><path d="M${x0 - minx} ${y0 - miny + 380} C ${x0 - minx} ${y1 - miny}, ${x1 - minx} ${y0 - miny}, ${x1 - minx} ${y1 - miny - 420}" fill="none" stroke="#9a9a9a" stroke-width="2.5" stroke-dasharray="9 8"/></svg>`);
+  d.style.cssText = `left:${minx}px;top:${miny}px;overflow:visible`;
+  const svg = d.querySelector('svg'); svg.style.overflow = 'visible';
+  sc.updates.push(t => { const p = prog(t, t0 - 0.1, t1); d.style.clipPath = `inset(0 0 ${100 - p * 100}% 0)`; if (x1 < x0) d.style.clipPath = `inset(0 0 0 0)`; d.style.opacity = p > 0 ? 1 : 0; });
+}
+function objeto(sc, src, x, y, w, t0, o = {}) {      // objeto 3D P&B recortado entrando com overshoot
+  const im = el('img', 'abs', sc.el); im.src = src; im.setAttribute('data-evitar', o.nome || 'objeto');
+  im.style.cssText = `left:${x - w / 2}px;top:${y - w / 2}px;width:${w}px;filter:${o.cor ? '' : pb} ${sombra}`;
+  sc.updates.push(t => { const p = pop(t, t0, 0.5), q = o.out ? prog(t, o.out, o.out + 0.25) : 0;
+    im.style.opacity = p > 0 ? 1 - q : 0; im.style.transform = `translateY(${(1 - Math.min(p, 1)) * 60 + Math.sin(t * 1.4) * 6}px) rotate(${(o.rot || 0) + Math.sin(t * 0.9) * 2}deg) scale(${p})`; });
+  return im;
+}
+function tracejada(sc, x, y, w, h, t0, o = {}) {      // caixa de seleção tracejada que se desenha
+  const d = el('div', 'abs', sc.el, `<svg width="${w + 12}" height="${h + 12}"><rect x="6" y="6" width="${w}" height="${h}" rx="6" fill="none" stroke="${o.cor || '#555'}" stroke-width="2" stroke-dasharray="8 6"/></svg>`);
+  d.style.cssText = `left:${x - w / 2 - 6}px;top:${y - h / 2 - 6}px`;
+  sc.updates.push(t => { const p = easeOut(prog(t, t0, t0 + 0.45)), q = o.out ? prog(t, o.out, o.out + 0.2) : 0;
+    d.style.opacity = p > 0 ? 1 - q : 0; d.style.clipPath = `inset(0 ${100 - p * 100}% 0 0)`; });
+  return d;
+}
+function credito(s, txt, t0, t1) {
+  const c = el('div', 'abs', s.el, txt);
+  c.style.cssText = 'left:40px;bottom:30px;white-space:nowrap;font:500 15px Inter;color:rgba(0,0,0,.55);z-index:30';
+  s.updates.push(t => c.style.opacity = t >= t0 && t < t1 ? 1 : 0);
+}
+function marca(s) {   // microtipografia fixa (marca d'água do canal no rodapé, como na referência)
+  const m = el('div', 'abs', s.el, 'IA · ESCÂNDALO NVIDIA · 14.11.2026'); m.style.cssText = 'left:360px;top:1200px;transform:translateX(-50%);white-space:nowrap;font:600 14px Inter;letter-spacing:.2em;color:rgba(0,0,0,.28)';
+}
+
+/* ===== ATO 1 — a queda ===== */
+{
+  const s = scene(...S(0), FUNDO, 0.008); const sc = canvas(s); marca(s);
+  // estação 1: cérebro + "a empresa que fabrica o cérebro da IA..."
+  sc.estacao(0, 0, 0);
+  const sw = cut(9);
+  objeto(sc, A + 'cerebro.png', 0, -300, 330, 0.1, { nome: 'cérebro' });
+  bloco(sc, 90, [
+    { seq: [0, 2, { font: reg(46), color: CINZA, from: FROM, outAt: sw }] },
+    { seq: [3, 5, { font: reg(46), color: CINZA, from: FROM, outAt: sw }, { 5: { font: bold(96), color: PRETO } }] },
+    { seq: [6, 8, { font: bold(54), color: PRETO, from: FROM, outAt: sw }] },
+  ], { x: 0 });
+  const e2 = sc.estacao(820, 340, 15);
+  bloco(sc, 90, [
+    { seq: [9, 11, { font: reg(50), color: CINZA, from: FROM, outAt: e2.t1 }] },
+    { seq: [12, 13, { font: reg(50), color: CINZA, from: FROM, outAt: e2.t1 }] },
+    { seq: [14, 14, { font: bold(110), color: PRETO, from: FROM, outAt: e2.t1 }] },
+  ], { x: 0 });
+  // estação 2: Jensen recortado + nome em caixa tracejada
+  const fj = objeto(sc, A + 'jensen_recorte.png', 820, 340 - 300, 330, e2.t0 + 0.2, { nome: 'foto Jensen' });
+  fj.style.borderRadius = '0'; fj.style.height = '440px'; fj.style.width = 'auto'; fj.style.left = (820 - 165) + 'px'; fj.style.top = (340 - 300 - 220) + 'px';
+  const b2 = bloco(sc, 340 + 150, [
+    { seq: [15, 16, { font: bold(84), color: PRETO, from: FROM }] },
+    { seq: [17, 19, { font: reg(50), color: CINZA, from: FROM }] },
+    { seq: [20, 21, { font: reg(50), color: CINZA, from: FROM, ...NV }, { 21: { font: bold(78), color: VERDE } }] },
+    { seq: [22, 23, { font: reg(46), color: CINZA, from: FROM }] },
+  ], { x: 820 });
+  tracejada(sc, 820, 340 + 150 - 115, 560, 112, we(16));
+  credito(s, 'Foto: Anders Eidesvik · Wikimedia Commons (CC BY-SA 4.0)', e2.t0, s.end);
+}
+
+/* ===== ATO 2 — o escândalo (corte seco) ===== */
+{
+  const s = scene(...S(1), FUNDO, 0.008); const sc = canvas(s); marca(s);
+  // estação 3: lupa + "suspeita" em caixa tracejada
+  sc.estacao(0, 0, 24);
+  objeto(sc, A + 'lupa.png', 60, -290, 340, s.start + 0.05, { nome: 'lupa', rot: -12 });
+  const e4 = sc.estacao(-700, 700, 29);
+  bloco(sc, 60, [
+    { seq: [24, 25, { font: reg(54), color: CINZA, from: FROM, outAt: e4.t1 }] },
+    { seq: [26, 28, { font: reg(54), color: CINZA, from: FROM, outAt: e4.t1 }, { 28: { font: bold(92), color: PRETO } }] },
+  ], { x: 0 });
+  tracejada(sc, 128, 60 + 33, 380, 110, we(28) - 0.2, { out: e4.t1 });
+  // estação 4: silhueta "?" com órbita de rótulos
+  const sil = el('div', 'abs', sc.el, `<svg width="260" height="260" viewBox="0 0 260 260"><circle cx="130" cy="130" r="122" fill="#dadada" stroke="#bbbbbb" stroke-width="3"/>
+    <circle cx="130" cy="100" r="44" fill="#9e9e9e"/><path d="M50 228 C 60 160, 200 160, 210 228 Z" fill="#9e9e9e"/><text x="130" y="118" text-anchor="middle" font-family="Inter" font-weight="800" font-size="56" fill="#ededed">?</text></svg>`);
+  sil.setAttribute('data-evitar', 'silhueta');
+  sil.style.cssText = `left:${-700 - 130}px;top:${700 - 330 - 130}px;filter:drop-shadow(0 18px 18px rgba(0,0,0,.18))`;
+  const orb = el('div', 'abs', sc.el, `<svg width="420" height="420"><circle cx="210" cy="210" r="190" fill="none" stroke="#9a9a9a" stroke-width="2" stroke-dasharray="6 7"/></svg>`);
+  orb.style.cssText = `left:${-700 - 210}px;top:${700 - 330 - 210}px`;
+  const rot = ['CHINA', 'CHIPS', 'FBI'].map(txt => { const r = el('div', 'abs', sc.el, txt); r.style.cssText = 'white-space:nowrap;font:800 20px Inter;letter-spacing:.1em;color:#111;background:#fff;border:2px dashed #777;padding:6px 14px;border-radius:30px'; return r; });
+  const sw4 = cut(36);
+  sc.updates.push(t => { const p = pop(t, e4.t0 + 0.2, 0.5); sil.style.transform = `scale(${p})`; sil.style.opacity = p > 0 ? 1 : 0;
+    const q = easeOut(prog(t, ws(31), ws(31) + 0.6)); orb.style.opacity = q; orb.style.transform = `rotate(${t * 20}deg) scale(${q})`;
+    rot.forEach((r, i) => { const a = t * 0.8 + i * 2.094, show = t > ws(31) + i * 0.25; r.style.opacity = show ? 1 : 0;
+      r.style.left = (-700 + Math.cos(a) * 190) + 'px'; r.style.top = (700 - 330 + Math.sin(a) * 190) + 'px'; r.style.transform = `translate(-50%,-50%) scale(${pop(t, ws(31) + i * 0.25, 0.4)})`; }); });
+  const e5 = sc.estacao(150, 1500, 41);
+  bloco(sc, 700 + 130, [
+    { seq: [29, 31, { font: reg(50), color: CINZA, from: FROM, outAt: sw4 }, { 31: { font: bold(50), color: PRETO } }] },
+    { seq: [32, 33, { font: reg(50), color: CINZA, from: FROM, outAt: sw4 }] },
+    { seq: [34, 35, { font: reg(50), color: CINZA, from: FROM, outAt: sw4 }, { 35: { font: bold(100), color: PRETO } }] },
+  ], { x: -700 });
+  bloco(sc, 700 + 130, [
+    { seq: [36, 37, { font: reg(54), color: CINZA, from: FROM, outAt: e5.t1 }] },
+    { seq: [38, 40, { font: bold(76), color: PRETO, from: FROM, outAt: e5.t1 }] },
+  ], { x: -700 });
+  // estação 5: aliança partida
+  objeto(sc, A + 'anel.png', 150, 1500 - 300, 360, e5.t0 + 0.2, { nome: 'aliança' });
+  const e6 = sc.estacao(900, 2150, 47);
+  bloco(sc, 1500 + 100, [
+    { seq: [41, 42, { font: reg(54), color: CINZA, from: FROM, outAt: e6.t1 }, { 41: { font: bold(54), color: PRETO } }] },
+    { seq: [43, 44, { font: reg(54), color: CINZA, from: FROM, outAt: e6.t1 }, { 44: { font: bold(104), color: PRETO } }] },
+    { seq: [45, 46, { font: reg(54), color: CINZA, from: FROM, outAt: e6.t1 }] },
+  ], { x: 150 });
+  // estação 6: lista tracejada de casos
+  const lista = el('div', 'abs', sc.el, ['CASO 1 · EXECUTIVA CHINESA', 'CASO 2 · DIRETORA DA NVIDIA'].map((c, i) =>
+    `<div class="it" style="display:flex;align-items:center;gap:14px;margin-top:${i ? 16 : 0}px;padding:16px 22px;border:2px dashed #777;border-radius:10px;background:rgba(255,255,255,.6);font:800 24px Inter;letter-spacing:.04em;color:#111;white-space:nowrap">
+      <span style="width:30px;height:30px;border:2.5px solid #111;border-radius:6px;display:inline-flex;align-items:center;justify-content:center;font:900 22px Inter" class="ck"></span>${c}</div>`).join(''));
+  lista.setAttribute('data-evitar', 'lista');
+  lista.style.cssText = `left:900px;top:${2150 - 310}px;transform:translate(-50%,-50%)`;
+  const its = [...lista.querySelectorAll('.it')], cks = [...lista.querySelectorAll('.ck')];
+  sc.updates.push(t => { [e6.t0 + 0.3, ws(55)].forEach((t0, i) => { const p = easeOutExpo(prog(t, t0, t0 + 0.4));
+      its[i].style.opacity = p; its[i].style.transform = `translateX(${(1 - p) * 120}px)`; cks[i].textContent = t > t0 + 0.4 ? '✓' : ''; }); });
+  const sw6 = cut(57);
+  bloco(sc, 2150 + 90, [
+    { seq: [47, 49, { font: reg(50), color: CINZA, from: FROM, outAt: sw6 }] },
+    { seq: [50, 52, { font: FONTS.dms(82), color: PRETO, from: FROM, outAt: sw6 }] },
+    { seq: [53, 53, { font: reg(50), color: CINZA, from: FROM, outAt: sw6 }] },
+    { seq: [54, 56, { font: reg(50), color: CINZA, from: FROM, outAt: sw6 }, { 55: { font: bold(64), color: PRETO } }] },
+  ], { x: 900 });
+  bloco(sc, 2150 + 90, [
+    { seq: [57, 60, { font: reg(50), color: CINZA, from: FROM }] },
+    { seq: [61, 61, { font: bold(96), color: PRETO, from: FROM }] },
+    { seq: [62, 64, { font: reg(50), color: CINZA, from: FROM, ...NV }, { 64: { font: bold(56), color: VERDE } }] },
+  ], { x: 900 });
+}
+
+/* ===== ATO 3 — as consequências (corte seco) ===== */
+{
+  const s = scene(...S(2), FUNDO, 0.008); const sc = canvas(s); marca(s);
+  // estação 7: seta despencando + gráfico que se desenha caindo
+  sc.estacao(0, 0, 65);
+  objeto(sc, A + 'seta.png', 120, -330, 330, s.start + 0.05, { nome: 'seta' });
+  const gr = el('div', 'abs', sc.el, `<svg width="420" height="200" viewBox="0 0 420 200"><path d="M10 40 L80 30 L140 50 L190 35 L240 60 L290 140 L340 120 L410 190" fill="none" stroke="#111" stroke-width="4" stroke-linejoin="round"/><circle cx="410" cy="190" r="8" fill="#d62828"/></svg>`);
+  gr.style.cssText = 'left:-330px;top:-420px;opacity:.85';
+  const gp = gr.querySelector('path'), gL = 600; gp.style.strokeDasharray = gL;
+  sc.updates.push(t => gp.style.strokeDashoffset = gL * (1 - easeInOut(prog(t, s.start + 0.1, ws(71)))));
+  const e8 = sc.estacao(760, 620, 78);
+  bloco(sc, 80, [
+    { seq: [65, 67, { font: reg(54), color: CINZA, from: FROM, outAt: e8.t1 }, { 67: { font: bold(54), color: PRETO } }] },
+    { seq: [68, 71, { font: reg(54), color: CINZA, from: FROM, outAt: e8.t1, text: { 70: '1' } }, { 70: { font: bold(120), color: PRETO }, 71: { font: bold(92), color: PRETO } }] },
+    { seq: [72, 73, { font: bold(64), color: PRETO, from: FROM, outAt: e8.t1 }] },
+    { seq: [74, 77, { font: reg(46), color: CINZA, from: FROM, outAt: e8.t1 }] },
+  ], { x: 0 });
+  // estação 8: Colette Kress em círculo + pílula
+  const fk = el('div', 'abs', sc.el, `<img src="${A}foto_kress.png" style="width:300px;height:300px;object-fit:cover;object-position:50% 8%;display:block;filter:${pb}">`);
+  fk.setAttribute('data-evitar', 'foto Kress');
+  fk.style.cssText = `left:${760 - 150}px;top:${620 - 330 - 150}px;border-radius:50%;overflow:hidden;border:4px solid #fff;box-shadow:0 24px 40px rgba(0,0,0,.2)`;
+  const ring = el('div', 'abs', sc.el, `<svg width="360" height="360"><circle cx="180" cy="180" r="172" fill="none" stroke="#777" stroke-width="2" stroke-dasharray="7 7"/></svg>`);
+  ring.style.cssText = `left:${760 - 180}px;top:${620 - 330 - 180}px`;
+  const pil = el('div', 'abs', sc.el, 'CEO INTERINA'); pil.style.cssText = `left:760px;top:${620 - 330 + 150}px;white-space:nowrap;font:800 22px Inter;letter-spacing:.1em;color:#fff;background:#111;padding:8px 20px;border-radius:30px`;
+  sc.updates.push(t => { const p = pop(t, e8.t0 + 0.25, 0.5); fk.style.transform = `scale(${p})`; fk.style.opacity = p > 0 ? 1 : 0;
+    ring.style.transform = `rotate(${t * 25}deg) scale(${p})`; ring.style.opacity = p > 0 ? 1 : 0;
+    const q = pop(t, ws(83), 0.4); pil.style.opacity = q > 0 ? 1 : 0; pil.style.transform = `translate(-50%,-50%) scale(${q})`; });
+  const e9 = sc.estacao(60, 1350, 87);
+  bloco(sc, 620 + 110, [
+    { seq: [78, 80, { font: reg(48), color: CINZA, from: FROM, outAt: e9.t1 }] },
+    { seq: [81, 82, { font: bold(88), color: PRETO, from: FROM, outAt: e9.t1, ...NV }] },
+    { seq: [83, 85, { font: reg(48), color: CINZA, from: FROM, outAt: e9.t1 }] },
+    { seq: [86, 86, { font: bold(62), color: PRETO, from: FROM, outAt: e9.t1 }] },
+  ], { x: 760 });
+  credito(s, 'Foto: SiliconANGLE theCUBE · Wikimedia Commons (CC BY 4.0)', e8.t0, e9.t0);
+  // estação 9: calendário 03 DEZ com círculo desenhado
+  const cal = el('div', 'abs', sc.el, `<div style="background:#111;color:#fff;font:800 22px Inter;letter-spacing:.15em;text-align:center;padding:8px 0;border-radius:14px 14px 0 0">DEZEMBRO</div>
+    <div style="font:800 120px/1.1 Inter;letter-spacing:-.05em;color:#111;text-align:center;padding:6px 0 10px">03</div>`);
+  cal.setAttribute('data-evitar', 'calendário');
+  cal.style.cssText = `left:${60 - 120}px;top:${1350 - 420}px;width:240px;background:#fff;border-radius:14px;box-shadow:0 26px 40px rgba(0,0,0,.18)`;
+  const cc = el('div', 'abs', sc.el, `<svg width="340" height="300" viewBox="0 0 340 300"><path d="M60 160 C 30 60, 250 10, 300 110 S 230 290, 120 270 S 20 200, 70 120" fill="none" stroke="#d62828" stroke-width="6" stroke-linecap="round"/></svg>`);
+  cc.style.cssText = `left:${60 - 170}px;top:${1350 - 420 - 30}px;filter:url(#rough)`;
+  const cp = cc.querySelector('path'), cL = 1100; cp.style.strokeDasharray = cL;
+  sc.updates.push(t => { const p = pop(t, e9.t0 + 0.2, 0.5); cal.style.opacity = p > 0 ? 1 : 0; cal.style.transform = `rotate(-4deg) scale(${p})`;
+    cp.style.strokeDashoffset = cL * (1 - easeInOut(prog(t, ws(94), ws(95) + 0.3))); cc.style.opacity = t > ws(94) ? 1 : 0; });
+  bloco(sc, 1350 + 140, [
+    { seq: [87, 89, { font: reg(50), color: CINZA, from: FROM }, { 89: { font: bold(56), color: PRETO } }] },
+    { seq: [90, 90, { font: bold(76), color: PRETO, from: FROM }] },
+    { seq: [91, 93, { font: reg(50), color: CINZA, from: FROM }, { 93: { font: bold(50), color: PRETO } }] },
+    { seq: [94, 95, { font: reg(50), color: CINZA, from: FROM }, { 95: { font: bold(70), color: PRETO } }] },
+  ], { x: 60 });
+}
+
+/* ===== CTA — fundo branco, cadeira vazia, caixa de comentário com cursor ===== */
+{
+  const s = scene(...S(3), '#ffffff', 0.01);
+  const ch = el('img', 'abs', s.el); ch.src = A + 'cadeira.png'; ch.setAttribute('data-evitar', 'cadeira');
+  ch.style.cssText = `left:${360 - 170}px;top:110px;width:340px;filter:${pb} ${sombra}`;
+  const lab = el('div', 'abs', s.el, 'VAGA: CEO'); lab.style.cssText = 'left:360px;top:470px;white-space:nowrap;font:800 22px Inter;letter-spacing:.14em;color:#111;border:2px dashed #777;padding:8px 20px;border-radius:30px;background:#fff';
+  const box = el('div', 'abs', s.el, `<div style="display:flex;align-items:center;gap:12px"><span class="q" style="flex:1;font:500 24px Inter;color:#333;white-space:nowrap;overflow:hidden"></span>
+    <span class="bt" style="font:800 20px Inter;letter-spacing:.06em;color:#fff;background:${VERDE};padding:12px 20px;border-radius:30px">COMENTAR</span></div>`);
+  box.setAttribute('data-evitar', 'comentário');
+  box.style.cssText = 'left:360px;top:1010px;width:580px;padding:14px 14px 14px 26px;border-radius:40px;background:#f3f3f3;border:2px solid #e2e2e2';
+  const q = box.querySelector('.q'), bt = box.querySelector('.bt'), tx = 'Eu colocaria...';
+  const cur = el('div', 'abs', s.el, `<svg width="44" height="44" viewBox="0 0 24 24"><path d="M3 2 L20 12 L12 13.5 L8 21 Z" fill="#111" stroke="#fff" stroke-width="1.4" stroke-linejoin="round"/></svg>`);
+  cur.style.cssText = 'left:0;top:0;z-index:20;filter:drop-shadow(0 6px 10px rgba(0,0,0,.3))';
+  const tc = we(N) + 0.5;
+  s.updates.push(t => {
+    const p = pop(t, s.start + 0.05, 0.5); ch.style.opacity = p > 0 ? 1 : 0; ch.style.transform = `translateY(${Math.sin(t * 1.3) * 6}px) rotate(${Math.sin(t * 0.8) * 3}deg) scale(${p})`;
+    const l = pop(t, s.start + 0.35, 0.4); lab.style.opacity = l > 0 ? 1 : 0; lab.style.transform = `translate(-50%,-50%) scale(${l})`;
+    const b = easeOutExpo(prog(t, ws(99), ws(99) + 0.4)); box.style.opacity = b; box.style.transform = `translate(-50%,-50%) translateY(${(1 - b) * 80}px)`;
+    q.textContent = tx.slice(0, Math.floor(clamp((t - ws(101)) * 12, 0, tx.length)));
+    const k = easeInOut(prog(t, tc - 0.6, tc)); cur.style.transform = `translate(${lerp(680, 560, k)}px,${lerp(1240, 1010, k)}px) scale(${t > tc && t < tc + 0.15 ? 0.82 : 1})`; cur.style.opacity = t > tc - 0.6 ? 1 : 0;
+    bt.style.transform = `scale(${t > tc && t < tc + 0.15 ? 0.92 : 1})`;
+  });
+  bloco(s, 700, [
+    { seq: [96, 98, { font: reg(52), color: CINZA, from: FROM }] },
+    { seq: [99, 101, { font: bold(54), color: PRETO, from: FROM }] },
+    { seq: [102, 104, { font: reg(52), color: CINZA, from: FROM, ...NV }, { 103: { font: bold(64), color: VERDE } }] },
+  ]);
+}
+
+finalize({ duration: DUR, grain: 0.05, vignette: 0.18, flashes: [[C[1], 0.1], [C[2], 0.1], [C[3], 0.12]] });
+</script>
+</body></html>

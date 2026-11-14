@@ -55,7 +55,8 @@ scripts de render e `descricao_tiktok.txt`. Commit e push na branch indicada pel
 | 14/11/2026 | `videos/alan-ruschel-despedida` (V1) | Cinemático próprio (preto, verde, ouro) | polaroid caindo, rota do voo tracejada, contadores, carimbo, comentário digitando |
 | 14/11/2026 | `videos/alan-ruschel-despedida` (V2) | `insta-trend-documentary-motion` | abertura clara → azul-marinho, cursor + caixa tracejada, cards 3D, pílulas com slide, infográfico de pontos, corte seco com grão, microtipografia de revista |
 | 14/11/2026 | `videos/alan-ruschel-despedida` (V3) | `motion-design-earnedits` | vinho + vinheta, palavras gigantes cortadas, eco de texto, stickers P&B caindo, 16 fps, rodapé de post |
+| 14/11/2026 | `videos/flavio-fora-do-pais` | `branding-why-storytelling-earnedits` | um "mundo" por frase (tela de bloqueio com notificação → zoom para dentro → janela do avião com cartão de embarque 3D → página de jornal com contador e círculo a caneta → holofote com barras comparativas → visor de câmera REC com corte seco → lousa a giz com bonequinhos 6/10 → barra de busca digitando + enquete com cursor), passaporte recortado como objeto-herói |
+| 14/11/2026 | `videos/nvidia-sem-jensen` | `vender-sem-palavras-insiderforce` | canvas infinito cinza com grade e câmera deslizando entre estações, conectores tracejados se desenhando, objetos 3D P&B recortados com sombra, caixas tracejadas de seleção, órbita de rótulos em volta de silhueta, lista com check-boxes, hierarquia só por peso (cinza fino + preto bold), 3 cortes secos por ato, CTA branco com cadeira vazia e caixa de comentário |
 
-Referências ainda **não usadas**: `branding-why-storytelling-earnedits`, `agencia-marketing-exar`,
-`vender-sem-palavras-insiderforce`, `marca-forte-cynosure`, `corretora-confiavel-pfh`,
+Referências ainda **não usadas**: `agencia-marketing-exar`, `marca-forte-cynosure`, `corretora-confiavel-pfh`,
 `posicionamento-al-ries-rivinity`, `mcdonalds-imoveis-earnedits`.

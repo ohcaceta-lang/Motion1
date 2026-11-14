@@ -1,0 +1,264 @@
+<!doctype html>
+<html><head><meta charset="utf-8"></head>
+<body>
+<script src="assets/words.js"></script>
+<script src="lib.js"></script>
+<script>
+/* Flávio fora do país — ref.: branding-why-storytelling-earnedits
+   "um mundo por frase": tela de bloqueio com notificação → zoom para dentro → janela do avião com cartão de embarque →
+   página de jornal com contador → holofote com barras → visor de câmera REC (corte seco = virada) → lousa a giz →
+   barra de busca digitando + enquete. Objeto-herói constante: o passaporte recortado. */
+const A = 'assets/';
+const N = window.WORDS.length - 1;
+const cut = i => ws(i) - 0.12;
+const C = [0, cut(12), cut(31), cut(53), cut(63), cut(76), cut(86)];
+const DUR = Math.ceil((we(N) + 2.0) * 10) / 10;
+C.push(DUR);
+const S = k => [C[k], C[k + 1]];
+const W = '#ffffff', VERDE = '#16c172', AMAR = '#ffd23f', VERM = '#e63946', TINTA = '#1d1a16';
+const sans = (px, w = 700) => FONTS.sans(px, w);
+
+/* ---------- helpers ---------- */
+// as transições de saída/entrada (whip/zoom com blur) duram 0,3 s; a conferência mede o layout "parado", sem elas
+const _lc = window.layoutCheck; window.layoutCheck = o => { window.__chk = true; const r = _lc(o); window.__chk = false; return r; };
+function credito(s, txt, escuro) {
+  const c = el('div', 'abs', s.el, txt);
+  c.style.cssText = `left:40px;bottom:30px;white-space:nowrap;font:500 15px Inter;color:${escuro ? 'rgba(29,26,22,.7)' : 'rgba(255,255,255,.75)'};z-index:30`;
+  return c;
+}
+function saida(s, tipo = 'whip') {               // transição motivada no fim da cena
+  s.updates.push(t => { const p = prog(t, s.end - 0.22, s.end); if (p <= 0 || window.__chk) return;
+    if (tipo === 'whip') { s.el.style.transform += ` translateX(${-easeIn(p) * 420}px)`; s.el.style.filter = `blur(${p * 18}px)`; }
+    if (tipo === 'zoom') { s.el.style.transform += ` scale(${1 + easeIn(p) * 2.4})`; s.el.style.filter = `blur(${p * 10}px)`; s.el.style.opacity = 1 - p * 0.6; } });
+}
+function entrada(s, tipo = 'whip') {
+  s.updates.push(t => { const p = prog(t, s.start, s.start + 0.3); if (p >= 1 || window.__chk) return;
+    if (tipo === 'whip') { s.el.style.transform += ` translateX(${(1 - easeOut(p)) * 420}px)`; s.el.style.filter = `blur(${(1 - p) * 18}px)`; }
+    if (tipo === 'zoom') { s.el.style.transform += ` scale(${lerp(0.6, 1, easeOut(p))})`; s.el.style.filter = `blur(${(1 - p) * 10}px)`; } });
+}
+function contador(s, alvo, t0, t1, css) {          // número que conta, posicionado no fluxo do bloco
+  const d = el('div', 'abs', s.el); d.style.cssText = `left:360px;white-space:nowrap;${css}`;
+  s.updates.push(t => { const p = easeOut(prog(t, t0, t1)); d.textContent = Math.round(alvo * p) + '%';
+    d.style.opacity = t >= t0 ? 1 : 0; d.style.transform = `translate(-50%,-50%) scale(${0.85 + 0.15 * pop(t, t0, 0.4)})`; });
+  return d;
+}
+
+/* 1 — TELA DE BLOQUEIO: relógio + notificação chegando com bounce */
+{
+  const s = scene(...S(0), '#000', 0.012);
+  bg(s, A + 'wallpaper.jpg', { z0: 1.15, z1: 1.05, filter: 'brightness(.75) saturate(1.1)' });
+  shade(s, 'background:linear-gradient(180deg, rgba(0,0,0,.15), rgba(0,0,0,.55) 70%, rgba(0,0,0,.8))');
+  const rel = el('div', 'abs', s.el, `<div style="font:500 24px Inter;color:rgba(255,255,255,.85);text-align:center">sábado, 14 de novembro</div>
+    <div style="font:800 128px/1 Inter;letter-spacing:-.05em;color:#fff;text-align:center">10:14</div>`);
+  rel.style.cssText = 'left:360px;top:190px;transform:translate(-50%,-50%);white-space:nowrap';
+  const nt = el('div', 'abs', s.el, `<div style="display:flex;align-items:center;gap:16px">
+      <div style="width:64px;height:64px;border-radius:50%;overflow:hidden;background:#fff;flex:none"><img src="${A}foto_flavio.jpg" style="width:64px;height:64px;object-fit:cover;object-position:50% 15%"></div>
+      <div style="flex:1;min-width:0"><div style="display:flex;justify-content:space-between;font:700 19px Inter;color:#1b1b1b"><span>URGENTE · POLÍTICA</span><span style="font-weight:500;color:#777">agora</span></div>
+      <div style="font:500 21px/1.3 Inter;color:#333;margin-top:4px">Senador deixa o Brasil após a eleição ✈️</div></div></div>`);
+  nt.setAttribute('data-evitar', 'notificação');
+  nt.style.cssText = 'left:360px;top:400px;width:620px;padding:18px 22px;border-radius:28px;background:rgba(245,245,247,.92);box-shadow:0 24px 60px rgba(0,0,0,.45)';
+  s.updates.push(t => { const p = prog(t, 0.15, 0.75), e = backOut(p);
+    nt.style.opacity = p > 0 ? 1 : 0; nt.style.transform = `translate(-50%,-50%) translateY(${(1 - e) * -260}px) scale(${lerp(.9, 1, e) + (t > 0.75 ? (t - .75) * 0.01 : 0)})`; });
+  bloco(s, 740, [
+    { seq: [0, 1, { font: sans(58), color: W, from: '#3d4a40' }, { 1: { color: AMAR } }] },
+    { seq: [2, 4, { font: FONTS.dms(96), color: W, from: '#3d4a40' }] },
+    { seq: [5, 8, { font: sans(46, 600), color: W, from: '#3d4a40' }] },
+    { seq: [9, 11, { font: sans(46, 600), color: W, from: '#3d4a40' }, { 11: { font: FONTS.dms(64, true), color: VERDE } }] },
+  ]);
+  credito(s, 'Foto: TSE · Wikimedia Commons (CC BY 4.0)');
+  saida(s, 'zoom');
+}
+
+/* 2 — JANELA DO AVIÃO: cartão de embarque + passaporte caindo + Lula */
+{
+  const s = scene(...S(1), '#020814', 0.014);
+  entrada(s, 'zoom');
+  bg(s, A + 'aviao.jpg', { z0: 1.05, z1: 1.2, py: -30, filter: 'brightness(.6) contrast(1.1)' });
+  shade(s, 'background:linear-gradient(180deg, rgba(2,8,20,.1), rgba(2,8,20,.75) 60%, rgba(2,8,20,.95))');
+  const tr = ws(21) - 0.02;
+  // Lula (1ª metade) — foto circular
+  const lu = el('div', 'abs', s.el, `<img src="${A}foto_lula.jpg" style="width:230px;height:230px;object-fit:cover;object-position:50% 12%;display:block">`);
+  lu.setAttribute('data-evitar', 'foto');
+  lu.style.cssText = `left:360px;top:400px;border-radius:50%;overflow:hidden;border:5px solid ${AMAR};box-shadow:0 0 50px rgba(255,210,63,.35)`;
+  const tag = el('div', 'abs', s.el, 'ELEITO EM 25.10');
+  tag.style.cssText = `left:360px;top:540px;white-space:nowrap;font:800 22px Inter;letter-spacing:.06em;color:#0b1a10;background:${AMAR};padding:6px 18px;border-radius:30px`;
+  // cartão de embarque (2ª metade)
+  const bp = el('div', 'abs', s.el, `<div style="display:flex;justify-content:space-between;font:700 16px Inter;color:#6b7280;letter-spacing:.08em"><span>CARTÃO DE EMBARQUE</span><span>27 OUT</span></div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-top:10px">
+      <div style="font:800 64px/1 Inter;color:#0b1220;letter-spacing:-.04em">BRA</div>
+      <svg width="150" height="40"><path d="M5 30 Q75 -10 145 30" fill="none" stroke="#9ca3af" stroke-width="3" stroke-dasharray="7 6"/></svg>
+      <div style="font:800 64px/1 Inter;color:#0b1220;letter-spacing:-.04em">EUA</div></div>`);
+  bp.setAttribute('data-evitar', 'cartão');
+  bp.style.cssText = 'left:360px;top:420px;width:560px;padding:22px 28px;border-radius:22px;background:#fff;box-shadow:0 30px 70px rgba(0,0,0,.55)';
+  const pa = el('img', 'abs', s.el); pa.src = A + 'passaporte.png';
+  pa.style.cssText = 'left:430px;top:170px;width:270px;filter:drop-shadow(0 20px 26px rgba(0,0,0,.6))';
+  s.updates.push(t => {
+    const a = pop(t, s.start + 0.35, 0.45), out = prog(t, tr - 0.25, tr);
+    lu.style.opacity = a > 0 && out < 1 ? 1 - out : 0; lu.style.transform = `translate(-50%,-50%) scale(${a * (1 - out * 0.3)})`;
+    const g = pop(t, ws(20), 0.35); tag.style.opacity = g > 0 && out < 1 ? 1 - out : 0; tag.style.transform = `translate(-50%,-50%) scale(${g})`;
+    const b = prog(t, tr, tr + 0.55), e = backOut(b);
+    bp.style.opacity = b > 0 ? 1 : 0; bp.style.transform = `translate(-50%,-50%) perspective(900px) rotateX(${lerp(70, 8, e)}deg) rotateZ(${lerp(-12, -3, e)}deg) translateY(${(1 - e) * 200}px)`;
+    const f = prog(t, ws(23), ws(23) + 0.7);
+    pa.style.opacity = f > 0 ? 1 : 0; pa.style.transform = `translateY(${(1 - easeOut(f)) * -420}px) rotate(${lerp(-40, 14, easeOut(f)) + Math.sin(t * 2) * 2}deg)`;
+  });
+  bloco(s, 800, [
+    { seq: [12, 14, { font: sans(52), color: W, from: '#2a3550', outAt: tr - 0.06 }] },
+    { seq: [15, 18, { font: FONTS.dms(62, true), color: W, from: '#2a3550', outAt: tr - 0.06 }] },
+    { seq: [19, 20, { font: sans(52), color: W, from: '#2a3550', outAt: tr - 0.06 }, { 20: { font: FONTS.dms(104), color: AMAR } }] },
+  ]);
+  bloco(s, 800, [
+    { seq: [21, 23, { font: sans(52), color: W, from: '#2a3550' }, { 23: { color: AMAR } }] },
+    { seq: [24, 28, { font: FONTS.dms(56, true), color: W, from: '#2a3550' }] },
+    { seq: [29, 30, { font: FONTS.dms(84), color: W, from: '#2a3550' }] },
+  ]);
+  const cr = credito(s, 'Foto de Lula: Palácio do Planalto · Wikimedia Commons (CC BY 2.0)');
+  s.updates.push(t => { cr.style.opacity = t < tr ? 1 : 0; });
+  saida(s);
+}
+
+/* 3 — PÁGINA DE JORNAL: manchete + contador 52% com círculo a caneta */
+{
+  const s = scene(...S(2), '#d9c7a3', 0.012);
+  entrada(s);
+  bg(s, A + 'jornal.jpg', { z0: 1.1, z1: 1.0, filter: 'sepia(.35) contrast(1.05)' });
+  shade(s, 'background:radial-gradient(ellipse at 50% 45%, rgba(255,250,235,.25), rgba(60,40,15,.35))');
+  const mast = el('div', 'abs', s.el, `<div style="font:400 74px/1 Play;font-style:normal;font-weight:900;letter-spacing:-.02em;color:${TINTA};text-align:center">O Diário</div>
+    <div style="display:flex;justify-content:space-between;border-top:3px solid ${TINTA};border-bottom:1px solid ${TINTA};margin-top:10px;padding:5px 0;font:600 15px Inter;color:${TINTA};letter-spacing:.1em"><span>SÁBADO, 14.11.2026</span><span>PESQUISA ATLAS/BLOOMBERG</span></div>`);
+  mast.style.cssText = 'left:360px;top:190px;width:620px;transform:translate(-50%,-50%)';
+  const sw = cut(40) + 0.06;
+  const num = contador(s, 52, ws(40), ws(44) + 0.2, `font:900 230px/1 Play;font-style:italic;color:${VERM};letter-spacing:-.04em`);
+  num.setAttribute('data-evitar', 'número');
+  const circ = el('div', 'abs', s.el, `<svg width="520" height="250" viewBox="0 0 520 250"><path d="M60 140 C 40 40, 300 10, 450 60 S 500 220, 260 230 S 20 200, 70 110" fill="none" stroke="${VERM}" stroke-width="7" stroke-linecap="round"/></svg>`);
+  circ.style.cssText = 'left:360px;transform:translate(-50%,-50%);filter:url(#rough)';
+  const pth = circ.querySelector('path'), L = 1500; pth.style.strokeDasharray = L;
+  s.updates.push(t => { circ.style.top = num.style.top; pth.style.strokeDashoffset = L * (1 - easeInOut(prog(t, ws(46), ws(46) + 0.6))); circ.style.opacity = t > ws(46) ? 1 : 0; });
+  bloco(s, 640, [
+    { seq: [31, 32, { font: FONTS.dms(64), color: TINTA, from: '#b9a57c', outAt: sw - 0.2 }] },
+    { seq: [33, 34, { font: sans(66, 800), color: TINTA, from: '#b9a57c', outAt: sw - 0.2 }] },
+    { seq: [35, 37, { font: FONTS.dms(50, true), color: TINTA, from: '#b9a57c', outAt: sw - 0.2 }] },
+  ]);
+  bloco(s, 700, [
+    { el: num, h: 250 },
+    { seq: [45, 46, { font: sans(58, 800), color: TINTA, from: '#b9a57c' }, { 46: { color: VERM } }] },
+    { seq: [47, 49, { font: FONTS.dms(56, true), color: TINTA, from: '#b9a57c' }] },
+    { seq: [50, 52, { font: sans(58, 800), color: TINTA, from: '#b9a57c' }] },
+  ]);
+  saida(s);
+}
+
+/* 4 — HOLOFOTE: 46% + barras comparando */
+{
+  const s = scene(...S(3), '#071a1c', 0.016);
+  entrada(s);
+  bg(s, A + 'spot.jpg', { z0: 1.12, z1: 1.0, filter: 'brightness(.85)' });
+  const cone = el('div', 'abs', s.el); cone.style.cssText = 'left:60px;top:-60px;width:600px;height:900px;background:radial-gradient(ellipse at 50% 0%, rgba(200,255,250,.28), transparent 65%);mix-blend-mode:screen';
+  s.updates.push(t => cone.style.opacity = 0.75 + Math.sin(t * 7) * 0.08);
+  const bars = el('div', 'abs', s.el, ['ERRADA|52|' + VERM, 'CERTA|46|' + VERDE].map(x => { const [l, v, c] = x.split('|');
+    return `<div style="display:flex;align-items:center;gap:14px;margin:10px 0"><div style="width:120px;font:800 22px Inter;color:#fff;letter-spacing:.06em">${l}</div>
+      <div style="width:400px;height:34px;background:rgba(255,255,255,.12);border-radius:8px;overflow:hidden"><div class="b" data-v="${v}" style="height:100%;width:0;background:${c};border-radius:8px"></div></div>
+      <div style="width:60px;font:800 24px Inter;color:#fff">${v}%</div></div>`; }).join(''));
+  bars.setAttribute('data-evitar', 'barras');
+  bars.style.cssText = 'left:360px;top:330px;transform:translate(-50%,-50%);white-space:nowrap';
+  const bs = [...bars.querySelectorAll('.b')];
+  s.updates.push(t => { const p = easeOut(prog(t, s.start + 0.2, s.start + 0.9)), q = easeOut(prog(t, ws(53), ws(57)));
+    bs[0].style.width = 52 * p / 0.6 + '%'; bs[1].style.width = 46 * q / 0.6 + '%'; bars.style.opacity = prog(t, s.start + 0.1, s.start + 0.3); });
+  const num = contador(s, 46, ws(53), ws(57) + 0.2, `font:400 210px/1 Anton;color:${VERDE};text-shadow:0 0 40px rgba(22,193,114,.45)`);
+  num.setAttribute('data-evitar', 'número');
+  bloco(s, 760, [
+    { el: num, h: 230 },
+    { seq: [58, 60, { font: FONTS.caps(70), color: W, from: '#2b4446' }] },
+    { seq: [61, 62, { font: FONTS.caps(110), color: W, from: '#2b4446' }, { 62: { color: VERDE } }] },
+  ], { lh: 1.3 });
+  saida(s);
+}
+
+/* 5 — VISOR DE CÂMERA (corte seco = virada): STF em P&B com REC */
+{
+  const s = scene(...S(4), '#000', 0.02);
+  bg(s, A + 'foto_stf.jpg', { z0: 1.0, z1: 1.18, px: -40, filter: 'grayscale(1) brightness(.5) contrast(1.2)' });
+  shade(s, 'background:linear-gradient(180deg, rgba(0,0,0,.2), rgba(0,0,0,.7))');
+  const vf = el('div', 'abs', s.el, `<svg width="720" height="1280">
+    ${[[60, 120, 1, 1], [660, 120, -1, 1], [60, 1160, 1, -1], [660, 1160, -1, -1]].map(([x, y, a, b]) => `<path d="M${x} ${y + 60 * b} V${y} H${x + 60 * a}" fill="none" stroke="#fff" stroke-width="4"/>`).join('')}
+    <line x1="300" y1="640" x2="420" y2="640" stroke="rgba(255,255,255,.5)" stroke-width="2"/><line x1="360" y1="580" x2="360" y2="700" stroke="rgba(255,255,255,.5)" stroke-width="2"/>
+    <rect x="560" y="150" width="60" height="26" rx="4" fill="none" stroke="#fff" stroke-width="3"/><rect x="565" y="155" width="40" height="16" fill="#fff"/></svg>`);
+  vf.style.cssText = 'inset:0';
+  const rec = el('div', 'abs', s.el, `<span class="dot" style="display:inline-block;width:18px;height:18px;border-radius:50%;background:${VERM};margin-right:10px;vertical-align:middle"></span>REC`);
+  rec.style.cssText = 'left:90px;top:150px;white-space:nowrap;font:700 28px Inter;color:#fff;letter-spacing:.08em';
+  const tc = el('div', 'abs', s.el); tc.style.cssText = 'left:90px;top:1100px;white-space:nowrap;font:600 22px monospace;color:#fff';
+  const dot = rec.querySelector('.dot');
+  s.updates.push(t => { dot.style.opacity = Math.floor(t * 2) % 2 ? 0.2 : 1; const k = t - s.start;
+    tc.textContent = `STF · BRASÍLIA   00:00:${String(Math.floor(k)).padStart(2, '0')}:${String(Math.floor((k % 1) * 30)).padStart(2, '0')}`; });
+  const ul = el('div', 'abs', s.el); ul.style.cssText = `left:360px;height:8px;background:${VERM};border-radius:4px;transform:translateX(-50%)`;
+  const b = bloco(s, 640, [
+    { seq: [63, 65, { font: sans(52), color: W, from: '#444444' }] },
+    { seq: [66, 69, { font: sans(48, 600), color: W, from: '#444444' }, { 69: { color: AMAR } }] },
+    { seq: [70, 70, { font: FONTS.caps(118), color: W, from: '#444444' }] },
+    { seq: [71, 75, { font: FONTS.dms(56, true), color: W, from: '#444444' }] },
+  ]);
+  s.updates.push(t => { ul.style.top = (parseFloat(b[2].L.style.top) + 66) + 'px'; ul.style.width = 380 * easeOut(prog(t, we(70), we(70) + 0.4)) + 'px'; });
+  credito(s, 'Foto: LecomteB · Wikimedia Commons (CC BY-SA 4.0)');
+  saida(s);
+}
+
+/* 6 — LOUSA A GIZ: 6 em cada 10 bonequinhos */
+{
+  const s = scene(...S(5), '#1e2a22', 0.012);
+  entrada(s);
+  bg(s, A + 'lousa.jpg', { z0: 1.0, z1: 1.08, filter: 'brightness(.95)' });
+  const giz = '#f4f1e8';
+  const pes = el('div', 'abs', s.el, Array.from({ length: 10 }, (_, i) => `<svg width="44" height="70" viewBox="0 0 44 70" style="margin:0 3px"><g fill="none" stroke-width="4" stroke-linecap="round" class="p${i}">
+      <circle cx="22" cy="13" r="9"/><path d="M22 23 V46 M22 30 L8 40 M22 30 L36 40 M22 46 L11 66 M22 46 L33 66"/></g></svg>`).join(''));
+  pes.style.cssText = 'left:360px;white-space:nowrap;display:flex;filter:url(#rough)';
+  pes.setAttribute('data-evitar', 'bonecos');
+  const gs = [...pes.querySelectorAll('g')];
+  s.updates.push(t => { pes.style.transform = 'translate(-50%,-50%)'; gs.forEach((g, i) => {
+    const on = t > ws(78) + i * 0.07, red = i < 6 && t > ws(83) + i * 0.06;
+    g.setAttribute('stroke', red ? '#ff8a8a' : giz); g.style.opacity = on ? (red || t < ws(83) ? 1 : 0.45) : 0; }); });
+  bloco(s, 600, [
+    { seq: [76, 77, { font: FONTS.hand(64), color: giz, from: '#3e5446' }] },
+    { seq: [78, 81, { font: FONTS.hand(92), color: giz, from: '#3e5446', text: { 78: '6', 81: '10' } }, { 78: { color: '#ff8a8a' } }] },
+    { el: pes, h: 96 },
+    { seq: [82, 82, { font: FONTS.hand(64), color: giz, from: '#3e5446' }] },
+    { seq: [83, 85, { font: FONTS.hand(80), color: giz, from: '#3e5446' }, { 83: { color: '#ff8a8a' } }] },
+  ]);
+  saida(s);
+}
+
+/* 7 — CTA: barra de busca digitando + enquete com cursor + passaporte flutuando */
+{
+  const s = scene(...S(6), 'linear-gradient(180deg,#eef3ff,#dfe8fb)', 0.01);
+  entrada(s);
+  const pa = el('img', 'abs', s.el); pa.src = A + 'passaporte.png';
+  pa.style.cssText = 'left:440px;top:90px;width:240px;filter:drop-shadow(0 22px 26px rgba(20,40,90,.35))';
+  const sb = el('div', 'abs', s.el, `<svg width="26" height="26" viewBox="0 0 24 24" style="flex:none"><circle cx="10" cy="10" r="7" fill="none" stroke="#5f6b85" stroke-width="2.4"/><path d="M15 15 L21 21" stroke="#5f6b85" stroke-width="2.4" stroke-linecap="round"/></svg><span class="q" style="margin-left:14px"></span><span class="c" style="width:2px;height:28px;background:#2b59c3;margin-left:2px"></span>`);
+  sb.setAttribute('data-evitar', 'busca');
+  sb.style.cssText = 'left:60px;top:340px;width:600px;height:76px;display:flex;align-items:center;padding:0 26px;border-radius:40px;background:#fff;box-shadow:0 14px 40px rgba(20,40,90,.18);font:500 26px Inter;color:#1d2433;white-space:nowrap';
+  const q = sb.querySelector('.q'), cc = sb.querySelector('.c'), txt = 'flávio bolsonaro saiu do brasil';
+  const poll = el('div', 'abs', s.el, `<div style="font:800 20px Inter;color:#5f6b85;letter-spacing:.1em;text-align:center;margin-bottom:12px">ENQUETE</div>
+    ${['✈️  FUGA', '♟️  ESTRATÉGIA'].map((o, i) => `<div class="op" style="height:66px;border-radius:16px;background:#eef2fb;margin-top:${i ? 12 : 0}px;font:800 28px/66px Inter;color:#1d2433;padding-left:22px;position:relative;overflow:hidden"><div class="fill" style="position:absolute;left:0;top:0;bottom:0;width:0;background:rgba(43,89,195,.18)"></div><span style="position:relative">${o}</span></div>`).join('')}`);
+  poll.setAttribute('data-evitar', 'enquete');
+  poll.style.cssText = 'left:360px;top:1010px;width:480px;padding:22px;background:#fff;border-radius:24px;box-shadow:0 24px 60px rgba(20,40,90,.22)';
+  const fills = [...poll.querySelectorAll('.fill')];
+  const cur = el('div', 'abs', s.el, `<svg width="44" height="44" viewBox="0 0 24 24"><path d="M3 2 L20 12 L12 13.5 L8 21 Z" fill="#1d2433" stroke="#fff" stroke-width="1.4" stroke-linejoin="round"/></svg>`);
+  cur.style.cssText = 'left:0;top:0;z-index:20;filter:drop-shadow(0 6px 10px rgba(0,0,0,.3))';
+  const tc = ws(93);
+  s.updates.push(t => {
+    const n = Math.floor(clamp((t - s.start - 0.2) * 20, 0, txt.length)); q.textContent = txt.slice(0, n); cc.style.opacity = Math.floor(t * 3) % 2 ? 0 : 1;
+    sb.style.transform = `translateY(${(1 - easeOutExpo(prog(t, s.start, s.start + 0.4))) * -120}px)`;
+    pa.style.transform = `translateY(${Math.sin(t * 1.6) * 12}px) rotate(${12 + Math.sin(t * 1.1) * 4}deg)`;
+    const p = pop(t, ws(89), 0.45); poll.style.opacity = p > 0 ? 1 : 0; poll.style.transform = `translate(-50%,-50%) scale(${p}) rotate(-1.5deg)`;
+    const k = easeInOut(prog(t, tc - 0.6, tc)); const x = lerp(640, 450, k), y = lerp(1250, 1050, k);
+    cur.style.transform = `translate(${x}px,${y}px) scale(${t > tc && t < tc + 0.15 ? 0.82 : 1})`; cur.style.opacity = t > tc - 0.6 ? 1 : 0;
+    fills.forEach(f => f.style.width = (t > tc ? 100 * easeOut(prog(t, tc, tc + 0.5)) : 0) * (f === fills[0] ? 0.52 : 0.46) + '%');
+  });
+  bloco(s, 640, [
+    { seq: [86, 87, { font: sans(60, 800), color: '#1d2433', from: '#b8c3dc' }, { 86: { color: VERM } }] },
+    { seq: [88, 88, { font: FONTS.dms(104), color: '#2b59c3', from: '#b8c3dc', raw: true }] },
+    { seq: [89, 90, { font: sans(52), color: '#1d2433', from: '#b8c3dc' }] },
+    { seq: [91, 94, { font: FONTS.dms(56, true), color: '#1d2433', from: '#b8c3dc' }] },
+  ]);
+}
+
+finalize({ duration: DUR, grain: 0.07, vignette: 0.4, flashes: [[C[1], 0.12], [C[4], 0.1]], preload: [A + 'passaporte.png'] });
+</script>
+</body></html>
