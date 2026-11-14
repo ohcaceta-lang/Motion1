@@ -23,7 +23,7 @@ function credito(s, txt) {
 }
 function contador(s, x, y, alvo, t0, t1, css) {
   const d = el('div', 'abs', s.el); d.setAttribute('data-evitar', 'contador');
-  d.style.cssText = `left:${x}px;top:${y}px;white-space:nowrap;font:400 220px/1 Anton;color:${CLARO};${css || ''}`;
+  d.style.cssText = `left:${x}px;top:${y}px;white-space:nowrap;font:400 220px/1 Anton;color:${CLARO};${css || ''};line-height:.8`;
   s.updates.push(t => {
     const p = prog(t, t0, t1); d.textContent = Math.round(alvo * easeOut(p));
     d.style.opacity = t >= t0 ? 1 : 0;
@@ -44,10 +44,11 @@ function carimbo(s, x, y, txt, t0, cor, rot = -8, px = 52) {
   const s = scene(...S(0), '#000', 0.02);
   bg(s, A + 'ceu.jpg', { z0: 1.25, z1: 1.08, filter: 'brightness(.6) contrast(1.15)' });
   shade(s, 'background:radial-gradient(ellipse at 50% 45%, rgba(0,0,0,.15), rgba(0,0,0,.85))');
-  seq(s, 360, 470, 0, 1, { font: sans(56), color: W });
-  seq(s, 360, 570, 2, 3, { font: sans(46), color: '#d8d8d8' });
-  seq(s, 360, 710, 4, 4, { font: FONTS.dms(120, true), color: CLARO, glow: 'rgba(255,255,255,.25)' });
-  seq(s, 360, 860, 5, 5, { font: FONTS.dms(120, true), color: OURO, glow: 'rgba(242,181,68,.45)', from: '#3a2a08' });
+  bloco(s, 640, [
+    { seq: [0, 1, { font: sans(56), color: W }] },
+    { seq: [2, 3, { font: sans(44), color: '#d8d8d8' }] },
+    { seq: [4, 4, { font: FONTS.dms(120, true), color: CLARO, glow: 'rgba(255,255,255,.25)' }] },
+    { seq: [5, 5, { font: FONTS.dms(120, true), color: OURO, glow: 'rgba(242,181,68,.45)', from: '#3a2a08' }] }]);
   s.updates.push(t => { if (t > ws(4) && t < ws(4) + 0.25) s.el.style.transform += ` translate(${Math.sin(t * 90) * 5}px,${Math.cos(t * 70) * 4}px)`; });
 }
 
@@ -56,9 +57,10 @@ function carimbo(s, x, y, txt, t0, cor, rot = -8, px = 52) {
   const s = scene(...S(1), '#000', 0.02);
   bg(s, A + 'estadio.jpg', { z0: 1.05, z1: 1.18, filter: 'brightness(.55) saturate(1.1)' });
   shade(s, 'background:linear-gradient(180deg, rgba(0,0,0,.7) 0%, rgba(0,0,0,.2) 45%, rgba(0,0,0,.75) 100%)');
-  seq(s, 360, 400, 6, 7, { font: sans(56), color: W }, { 7: { font: FONTS.caps(110), color: OURO, glow: 'rgba(242,181,68,.5)', from: '#3a2a08' } });
-  seq(s, 360, 560, 8, 10, { font: sans(54), color: W });
-  seq(s, 360, 690, 11, 12, { font: sans(54), color: W }, { 12: { font: FONTS.dms(110, true), color: VERDE, glow: 'rgba(46,194,106,.45)', from: '#0a2a14' } });
+  bloco(s, 620, [
+    { seq: [6, 7, { font: sans(56), color: W }, { 7: { font: FONTS.caps(110), color: OURO, glow: 'rgba(242,181,68,.5)', from: '#3a2a08' } }] },
+    { seq: [8, 10, { font: sans(54), color: W }] },
+    { seq: [11, 12, { font: sans(54), color: W }, { 12: { font: FONTS.dms(110, true), color: VERDE, glow: 'rgba(46,194,106,.45)', from: '#0a2a14' } }] }]);
 }
 
 /* 3 — quem é: polaroid com foto real */
@@ -71,9 +73,10 @@ function carimbo(s, x, y, txt, t0, cor, rot = -8, px = 52) {
   s.updates.push(t => { const p = prog(t, s.start, s.start + 0.6), e = backOut(p);
     pol.style.opacity = p > 0 ? 1 : 0;
     pol.style.transform = `translate(-50%,-50%) translateY(${(1 - e) * -500}px) rotate(${lerp(-18, -4, e)}deg) scale(${1 + (t - s.start) * 0.012})`; });
-  seq(s, 360, 800, 13, 14, { font: FONTS.dms(86), color: CLARO });
-  seq(s, 360, 900, 15, 17, { font: sans(46), color: W }, { 17: { color: VERDE } });
-  line(s, 360, 1030, [['tem', ws(18)], ['37', ws(19), { font: FONTS.caps(96), color: OURO, from: '#3a2a08' }], ['anos', ws(22)]], { font: sans(46), color: W });
+  bloco(s, 880, [
+    { seq: [13, 14, { font: FONTS.dms(86), color: CLARO }] },
+    { seq: [15, 17, { font: sans(46), color: W }, { 17: { color: VERDE } }] },
+    { line: [[['tem', ws(18)], ['37', ws(19), { font: FONTS.caps(96), color: OURO, from: '#3a2a08' }], ['anos', ws(22)]], { font: sans(46), color: W }] }]);
   credito(s, 'Foto: Sirli Freitas/Chapecoense · Wikimedia Commons (CC BY 2.0)');
 }
 
@@ -82,18 +85,19 @@ function carimbo(s, x, y, txt, t0, cor, rot = -8, px = 52) {
   const s = scene(...S(3), '#000', 0.015);
   bg(s, A + 'ceu.jpg', { z0: 1.0, z1: 1.15, filter: 'brightness(.45) grayscale(.3)', py: -30 });
   shade(s, 'background:linear-gradient(180deg, rgba(0,0,0,.75), rgba(0,0,0,.35) 50%, rgba(0,0,0,.85))');
-  line(s, 360, 290, [['Em', ws(23)], ['2016', ws(24), { font: FONTS.caps(120), color: OURO, from: '#3a2a08' }]], { font: sans(50), color: W });
-  seq(s, 360, 450, 28, 30, { font: sans(46), color: W });
-  seq(s, 360, 570, 31, 31, { font: FONTS.dms(96, true), color: VERDE, glow: 'rgba(46,194,106,.4)', from: '#0a2a14' });
-  seq(s, 360, 690, 32, 34, { font: sans(50), color: W }, { 34: { color: CLARO } });
+  bloco(s, 480, [
+    { line: [[['Em', ws(23)], ['2016', ws(24), { font: FONTS.caps(120), color: OURO, from: '#3a2a08' }]], { font: sans(50), color: W }] },
+    { seq: [28, 30, { font: sans(46), color: W }] },
+    { seq: [31, 31, { font: FONTS.dms(96, true), color: VERDE, glow: 'rgba(46,194,106,.4)', from: '#0a2a14' }] },
+    { seq: [32, 34, { font: sans(50), color: W }, { 34: { color: CLARO } }] }]);
   const svg = el('div', 'abs', s.el, `<svg width="720" height="400" viewBox="0 0 720 400">
     <path id="rota" d="M60 60 C 260 20, 420 40, 520 180 S 600 330, 610 350" fill="none" stroke="${VERM}" stroke-width="6" stroke-linecap="round"/>
     <g id="xis" stroke="${VERM}" stroke-width="9" stroke-linecap="round" opacity="0"><line x1="590" y1="330" x2="630" y2="370"/><line x1="630" y1="330" x2="590" y2="370"/></g></svg>`);
-  svg.style.cssText = 'left:0;top:770px';
+  svg.style.cssText = 'left:0;top:700px';
   const path = svg.querySelector('#rota'), xis = svg.querySelector('#xis'); const L = 760;
   s.updates.push(t => { const p = easeInOut(prog(t, ws(29), ws(32) + 0.2));
     path.setAttribute('stroke-dasharray', `${L * p} ${L}`); xis.setAttribute('opacity', t > ws(32) + 0.2 ? 1 : 0); });
-  const tp = typer(s.el, 'left:360px;top:1190px;transform:translateX(-50%);white-space:nowrap;font:400 30px Type;color:#d9cfbf', '29 . NOV . 2016', ws(25), 14);
+  const tp = typer(s.el, 'left:360px;top:1130px;transform:translateX(-50%);white-space:nowrap;font:400 30px Type;color:#d9cfbf', '29 . NOV . 2016', ws(25), 14);
   s.updates.push(t => tp.at(t));
 }
 
@@ -102,10 +106,13 @@ function carimbo(s, x, y, txt, t0, cor, rot = -8, px = 52) {
   const s = scene(...S(4), '#000', 0.012);
   bg(s, A + 'velas.jpg', { z0: 1.15, z1: 1.03, filter: 'brightness(.42) saturate(.9)' });
   shade(s, 'background:radial-gradient(ellipse at 50% 40%, rgba(0,0,0,.25), rgba(0,0,0,.85))');
-  contador(s, 360, 420, 71, ws(35), ws(38), 'font-size:250px;text-shadow:0 10px 40px rgba(0,0,0,.7)');
-  seq(s, 360, 640, 38, 39, { font: sans(52), color: W });
-  line(s, 360, 860, [['Só', ws(40)], ['6', ws(41), { font: FONTS.caps(120), color: VERDE, glow: 'rgba(46,194,106,.5)', from: '#0a2a14' }]], { font: sans(52), color: W });
-  seq(s, 360, 1010, 42, 42, { font: FONTS.dms(84, true), color: CLARO });
+  const c71 = contador(s, 360, 0, 71, ws(35), ws(38), 'font-size:250px;text-shadow:0 10px 40px rgba(0,0,0,.7)');
+  bloco(s, 640, [
+    { el: c71, h: 215 },
+    { seq: [38, 39, { font: sans(52), color: W }] },
+    { gap: 24 },
+    { line: [[['Só', ws(40)], ['6', ws(41), { font: FONTS.caps(120), color: VERDE, glow: 'rgba(46,194,106,.5)', from: '#0a2a14' }]], { font: sans(52), color: W }] },
+    { seq: [42, 42, { font: FONTS.dms(84, true), color: CLARO }] }]);
 }
 
 /* 6 — voltou a jogar, único que seguiu */
@@ -114,13 +121,15 @@ function carimbo(s, x, y, txt, t0, cor, rot = -8, px = 52) {
   bg(s, A + 'tunel.jpg', { z0: 1.0, z1: 1.22, filter: 'brightness(.5)' });
   shade(s, 'background:linear-gradient(180deg, rgba(0,0,0,.8) 0%, rgba(0,0,0,.45) 55%, rgba(0,0,0,.7) 100%)');
   const out = ws(47) - 0.1;
-  seq(s, 360, 380, 43, 44, { font: sans(56), color: W, outAt: out });
-  seq(s, 360, 500, 45, 46, { font: sans(56), color: W, outAt: out }, { 46: { font: FONTS.dms(100, true), color: VERDE, glow: 'rgba(46,194,106,.45)', from: '#0a2a14' } });
-  seq(s, 360, 380, 47, 50, { font: sans(50), color: W }, { 50: { color: OURO } });
-  seq(s, 360, 500, 51, 51, { font: FONTS.dms(92, true), color: VERDE, glow: 'rgba(46,194,106,.45)', from: '#0a2a14' });
-  seq(s, 360, 620, 52, 54, { font: sans(46), color: W });
-  seq(s, 360, 710, 55, 57, { font: sans(46), color: W }, { 55: { color: CLARO } });
-  carimbo(s, 360, 950, 'O ÚLTIMO EM CAMPO', ws(55), OURO, -6, 50);
+  bloco(s, 600, [
+    { seq: [43, 44, { font: sans(56), color: W, outAt: out }] },
+    { seq: [45, 46, { font: sans(56), color: W, outAt: out }, { 46: { font: FONTS.dms(100, true), color: VERDE, glow: 'rgba(46,194,106,.45)', from: '#0a2a14' } }] }]);
+  bloco(s, 600, [
+    { seq: [47, 50, { font: sans(50), color: W }, { 50: { color: OURO } }] },
+    { seq: [51, 51, { font: FONTS.dms(92, true), color: VERDE, glow: 'rgba(46,194,106,.45)', from: '#0a2a14' }] },
+    { seq: [52, 54, { font: sans(46), color: W }] },
+    { seq: [55, 57, { font: sans(46), color: W }, { 55: { color: CLARO } }] }]);
+  carimbo(s, 360, 840, 'O ÚLTIMO EM CAMPO', ws(55), OURO, -6, 50);
 }
 
 /* 7 — 19 temporadas, 411 jogos */
@@ -128,11 +137,15 @@ function carimbo(s, x, y, txt, t0, cor, rot = -8, px = 52) {
   const s = scene(...S(6), '#000', 0.015);
   bg(s, A + 'chuteiras.jpg', { z0: 1.12, z1: 1.0, filter: 'brightness(.42)', origin: '50% 80%' });
   shade(s, 'background:linear-gradient(180deg, rgba(0,0,0,.65), rgba(0,0,0,.5) 50%, rgba(0,0,0,.8))');
-  seq(s, 360, 250, 58, 58, { font: sans(50), color: W });
-  contador(s, 360, 440, 19, ws(59), ws(60), `color:${OURO}`);
-  seq(s, 360, 610, 60, 60, { font: FONTS.dms(74, true), color: CLARO });
-  contador(s, 360, 810, 411, ws(62), ws(65), `color:${VERDE}`);
-  seq(s, 360, 990, 65, 65, { font: FONTS.dms(74, true), color: CLARO });
+  const c19 = contador(s, 360, 0, 19, ws(59), ws(60), `color:${OURO};font-size:200px`);
+  const c411 = contador(s, 360, 0, 411, ws(62), ws(65), `color:${VERDE};font-size:200px`);
+  bloco(s, 640, [
+    { seq: [58, 58, { font: sans(50), color: W }] },
+    { el: c19, h: 175 },
+    { seq: [60, 60, { font: FONTS.dms(74, true), color: CLARO }] },
+    { gap: 20 },
+    { el: c411, h: 175 },
+    { seq: [65, 65, { font: FONTS.dms(74, true), color: CLARO }] }]);
 }
 
 /* 8 — duas cirurgias */
@@ -140,12 +153,13 @@ function carimbo(s, x, y, txt, t0, cor, rot = -8, px = 52) {
   const s = scene(...S(7), '#000', 0.015);
   bg(s, A + 'joelho.jpg', { z0: 1.05, z1: 1.16, filter: 'brightness(.45) saturate(.6)', origin: '50% 70%' });
   shade(s, 'background:linear-gradient(180deg, rgba(4,10,20,.85) 0%, rgba(4,10,20,.55) 60%, rgba(0,0,0,.8) 100%)');
-  seq(s, 360, 340, 66, 68, { font: sans(48), color: W });
-  line(s, 360, 480, [['2', ws(69), { font: FONTS.caps(120), color: VERM, from: '#3a0608' }], ['cirurgias', ws(70), { font: FONTS.dms(88, true), color: CLARO }]], {});
-  seq(s, 360, 640, 71, 72, { font: sans(52), color: W });
-  seq(s, 360, 760, 73, 74, { font: FONTS.hand(64), color: OURO });
+  const b8 = bloco(s, 600, [
+    { seq: [66, 68, { font: sans(48), color: W }] },
+    { line: [[['2', ws(69), { font: FONTS.caps(120), color: VERM, from: '#3a0608' }], ['cirurgias', ws(70), { font: FONTS.dms(88, true), color: CLARO }]], {}] },
+    { seq: [71, 72, { font: sans(52), color: W }] },
+    { seq: [73, 74, { font: FONTS.hand(64), color: OURO }] }]);
   const u = el('div', 'abs', s.el, `<svg width="420" height="40"><path d="M6 24 C 120 8, 280 34, 412 14" fill="none" stroke="${VERM}" stroke-width="7" stroke-linecap="round" style="filter:url(#rough)"/></svg>`);
-  u.style.cssText = 'left:150px;top:540px';
+  u.style.cssText = `left:150px;top:${parseFloat(b8[1].L.style.top) + 40}px`;
   const up = u.querySelector('path'); const UL = 430;
   s.updates.push(t => { const p = easeOut(prog(t, ws(70) + 0.2, ws(70) + 0.6)); up.setAttribute('stroke-dasharray', `${UL * p} ${UL}`); });
 }
@@ -155,12 +169,13 @@ function carimbo(s, x, y, txt, t0, cor, rot = -8, px = 52) {
   const s = scene(...S(8), '#020805', 0.02);
   bg(s, A + 'foto_alan.jpg', { z0: 1.2, z1: 1.32, filter: 'grayscale(1) brightness(.32) contrast(1.1)', origin: '50% 25%' });
   shade(s, 'background:linear-gradient(180deg, rgba(0,0,0,.35), rgba(2,20,10,.75) 60%, rgba(0,0,0,.9))');
-  const q = el('div', 'abs', s.el, '“'); q.style.cssText = `left:70px;top:150px;font:900 italic 300px/1 Play;color:${VERDE};opacity:0;transform-origin:30% 30%`;
+  const q = el('div', 'abs', s.el, '“'); q.style.cssText = `left:70px;top:250px;font:900 italic 300px/1 Play;color:${VERDE};opacity:0;transform-origin:30% 30%`;
   s.updates.push(t => { const p = pop(t, s.start + 0.05, 0.4); q.style.opacity = p > 0 ? .55 : 0; q.style.transform = `scale(${p})`; });
-  seq(s, 360, 470, 75, 76, { font: FONTS.dms(76, true), color: CLARO, text: { 75: '“Não' } });
-  seq(s, 360, 580, 77, 78, { font: FONTS.dms(76, true), color: CLARO });
-  seq(s, 360, 690, 79, 81, { font: FONTS.dms(76, true), color: CLARO });
-  seq(s, 360, 840, 82, 82, { font: FONTS.dms(118, true), color: OURO, glow: 'rgba(242,181,68,.5)', from: '#3a2a08', text: { 82: 'corpo”' } });
+  bloco(s, 660, [
+    { seq: [75, 76, { font: FONTS.dms(76, true), color: CLARO, text: { 75: '“Não' } }] },
+    { seq: [77, 78, { font: FONTS.dms(76, true), color: CLARO }] },
+    { seq: [79, 81, { font: FONTS.dms(76, true), color: CLARO }] },
+    { seq: [82, 82, { font: FONTS.dms(118, true), color: OURO, glow: 'rgba(242,181,68,.5)', from: '#3a2a08', text: { 82: 'corpo”' } }] }]);
   credito(s, 'Foto: Sirli Freitas/Chapecoense · Wikimedia Commons (CC BY 2.0)');
   s.updates.push(t => { if (t > ws(82) && t < ws(82) + 0.2) s.el.style.transform += ` translate(${Math.sin(t * 120) * 6}px,0)`; });
 }
@@ -170,16 +185,17 @@ function carimbo(s, x, y, txt, t0, cor, rot = -8, px = 52) {
   const s = scene(...S(9), '#000', 0.018);
   bg(s, A + 'estadio.jpg', { z0: 1.2, z1: 1.05, filter: 'brightness(.5) saturate(1.2)' });
   shade(s, 'background:linear-gradient(180deg, rgba(0,0,0,.75), rgba(0,0,0,.3) 50%, rgba(0,0,0,.8))');
-  seq(s, 360, 330, 83, 85, { font: sans(52), color: W }, { 84: { font: FONTS.dms(86, true), color: OURO } });
-  seq(s, 360, 500, 86, 87, { font: sans(52), color: W }, { 87: { font: FONTS.caps(130), color: VERDE, glow: 'rgba(46,194,106,.55)', from: '#0a2a14' } });
-  seq(s, 360, 670, 88, 90, { font: sans(48), color: W }, { 90: { color: CLARO } });
-  seq(s, 360, 760, 91, 93, { font: sans(48), color: W });
+  bloco(s, 540, [
+    { seq: [83, 85, { font: sans(52), color: W }, { 84: { font: FONTS.dms(86, true), color: OURO } }] },
+    { seq: [86, 87, { font: sans(52), color: W }, { 87: { font: FONTS.caps(130), color: VERDE, glow: 'rgba(46,194,106,.55)', from: '#0a2a14' } }] },
+    { seq: [88, 90, { font: sans(48), color: W }, { 90: { color: CLARO } }] },
+    { seq: [91, 93, { font: sans(48), color: W }] }]);
   const pl = el('div', 'abs', s.el, `<div style="font:700 18px Inter;letter-spacing:.2em;color:${OURO};margin-bottom:10px">SÉRIE B · ÚLTIMA RODADA</div>
     <div style="display:flex;align-items:center;justify-content:center;gap:22px;font:400 46px/1 Anton;color:#fff">
       <span>JUVENTUDE</span><span style="color:${VERDE};font-size:36px">×</span><span>BOTAFOGO-SP</span></div>
     <div style="font:600 20px Inter;color:#cfcfcf;margin-top:12px">SÁB · 14/11 · ALFREDO JACONI</div>`);
   pl.setAttribute('data-evitar', 'placar');
-  pl.style.cssText = 'left:360px;top:1000px;width:600px;text-align:center;padding:24px 18px;background:rgba(6,20,12,.88);border:2px solid rgba(46,194,106,.6);border-radius:18px;box-shadow:0 20px 50px rgba(0,0,0,.6);white-space:nowrap';
+  pl.style.cssText = 'left:360px;top:880px;width:600px;text-align:center;padding:24px 18px;background:rgba(6,20,12,.88);border:2px solid rgba(46,194,106,.6);border-radius:18px;box-shadow:0 20px 50px rgba(0,0,0,.6);white-space:nowrap';
   s.updates.push(t => { const p = pop(t, ws(90), 0.4); pl.style.opacity = p > 0 ? 1 : 0; pl.style.transform = `translate(-50%,-50%) scale(${p})`; });
 }
 
@@ -188,13 +204,14 @@ function carimbo(s, x, y, txt, t0, cor, rot = -8, px = 52) {
   const s = scene(...S(10), '#000', 0.02);
   bg(s, A + 'tunel.jpg', { z0: 1.1, z1: 1.45, filter: 'brightness(.55) saturate(1.2)', origin: '50% 55%' });
   shade(s, 'background:linear-gradient(180deg, rgba(0,0,0,.75), rgba(0,0,0,.35) 50%, rgba(0,0,0,.75))');
-  seq(s, 360, 400, 94, 96, { font: sans(52), color: W });
-  seq(s, 360, 530, 97, 98, { font: sans(52), color: W }, { 98: { font: FONTS.dms(100, true), color: VERDE, glow: 'rgba(46,194,106,.5)', from: '#0a2a14' } });
-  seq(s, 360, 670, 99, 100, { font: sans(52), color: W });
   const big = { font: FONTS.caps(120), color: OURO, glow: 'rgba(242,181,68,.5)', from: '#3a2a08' };
-  seq(s, 360, 840, 101, 103, { font: sans(52), color: W }, { 102: big, 103: big });
+  bloco(s, 580, [
+    { seq: [94, 96, { font: sans(52), color: W }] },
+    { seq: [97, 98, { font: sans(52), color: W }, { 98: { font: FONTS.dms(100, true), color: VERDE, glow: 'rgba(46,194,106,.5)', from: '#0a2a14' } }] },
+    { seq: [99, 100, { font: sans(52), color: W }] },
+    { seq: [101, 103, { font: sans(52), color: W }, { 102: big, 103: big }] }]);
   const ar = el('div', 'abs', s.el, `<svg width="90" height="110" viewBox="0 0 90 110"><path d="M45 5 L85 55 H60 V105 H30 V55 H5 Z" fill="${VERDE}"/></svg>`);
-  ar.setAttribute('data-evitar', 'seta'); ar.style.cssText = 'left:360px;top:1050px';
+  ar.setAttribute('data-evitar', 'seta'); ar.style.cssText = 'left:360px;top:880px';
   s.updates.push(t => { const p = prog(t, ws(102), ws(102) + 0.5); ar.style.opacity = p > 0 ? 1 : 0;
     ar.style.transform = `translate(-50%,-50%) translateY(${(1 - easeOutExpo(p)) * 120 + Math.sin(t * 6) * 8}px)`; });
 }
@@ -202,17 +219,19 @@ function carimbo(s, x, y, txt, t0, cor, rot = -8, px = 52) {
 /* 12 — CTA */
 {
   const s = scene(...S(11), 'radial-gradient(ellipse at 50% 40%, #0f3a22 0%, #020a05 75%)', 0.01);
-  seq(s, 360, 300, 104, 105, { font: sans(54), color: W }, { 105: { font: FONTS.dms(96, true), color: CLARO } });
-  seq(s, 360, 430, 106, 106, { font: FONTS.hand(84), color: OURO });
-  seq(s, 360, 580, 107, 109, { font: sans(48), color: W });
-  seq(s, 360, 690, 110, 110, { font: FONTS.dms(96, true), color: VERDE, glow: 'rgba(46,194,106,.5)', from: '#0a2a14' });
-  seq(s, 360, 810, 111, 112, { font: sans(48), color: W });
+  bloco(s, 560, [
+    { seq: [104, 105, { font: sans(54), color: W }, { 105: { font: FONTS.dms(96, true), color: CLARO } }] },
+    { seq: [106, 106, { font: FONTS.hand(80), color: OURO }] },
+    { gap: 16 },
+    { seq: [107, 109, { font: sans(48), color: W }] },
+    { seq: [110, 110, { font: FONTS.dms(96, true), color: VERDE, glow: 'rgba(46,194,106,.5)', from: '#0a2a14' }] },
+    { seq: [111, 112, { font: sans(48), color: W }] }]);
   const card = el('div', 'abs', s.el, `<div style="display:flex;gap:16px;align-items:flex-start">
       <div style="width:56px;height:56px;border-radius:50%;background:${VERDE};display:flex;align-items:center;justify-content:center"><img src="${tw('1f49a')}" style="width:32px"></div>
       <div style="flex:1"><div style="font:700 20px Inter;color:#111">você</div><div id="cm" style="font:500 26px/1.3 Inter;color:#222;min-height:34px;white-space:nowrap"></div></div>
       <img src="${tw('2764')}" style="width:30px;margin-top:6px"></div>`);
   card.setAttribute('data-evitar', 'comentario');
-  card.style.cssText = 'left:360px;top:1040px;width:600px;padding:22px 24px;background:#fff;border-radius:22px;box-shadow:0 20px 50px rgba(0,0,0,.6)';
+  card.style.cssText = 'left:360px;top:920px;width:600px;padding:22px 24px;background:#fff;border-radius:22px;box-shadow:0 20px 50px rgba(0,0,0,.6)';
   const cm = card.querySelector('#cm'); const msg = 'Obrigado por tudo, guerreiro! 👏';
   s.updates.push(t => { const t0 = ws(112); const p = pop(t, t0, 0.4);
     card.style.opacity = p > 0 ? 1 : 0; card.style.transform = `translate(-50%,-50%) scale(${p}) rotate(-1.5deg)`;

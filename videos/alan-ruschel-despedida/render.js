@@ -16,7 +16,7 @@ const path = require('path');
   }, t);
   if (process.argv.includes('--check')) {               // verificação automática de quebra de texto e espaçamento
     const probs = await page.evaluate(() => window.layoutCheck());
-    if (!probs.length) console.log('LAYOUT OK: nenhum corte, sobreposição ou espaçamento apertado.');
+    if (!probs.length) console.log('LAYOUT OK: nenhum corte, sobreposição, espaçamento apertado ou espaçamento exagerado.');
     else { console.log(`LAYOUT: ${probs.length} problema(s)`); probs.forEach(p => console.log(`  [${p.tipo}] t=${p.t}s  ${p.texto}  →  ${p.detalhe}`)); }
     await browser.close(); process.exit(probs.length ? 2 : 0);
   }
