@@ -2,6 +2,14 @@
 
 Este repositório guarda vídeos virais verticais (Reels/TikTok/Shorts) e as referências de animação do usuário.
 
+## ✅ Checklist obrigatório antes de entregar QUALQUER vídeo novo
+- [ ] Animação baseada numa referência de `referencias/` diferente das já usadas (ver Histórico), com novidade.
+- [ ] Texto de cada cena num **único bloco compacto e centralizado** (`bloco()`), sem linhas espalhadas nem buracos.
+- [ ] `node render.js video.html --check` → **LAYOUT OK** (sem CORTE, APERTADO, ESPAÇADO, SOBREPOSIÇÃO, ELEMENTO).
+- [ ] Prévia (folha de frames) conferida a olho: blocos alinhados, nada solto no rodapé, palavra-chave em destaque.
+- [ ] `descricao_tiktok.txt` com SEO salvo e colado no fim da resposta.
+- [ ] Histórico de estilos atualizado, commit e push.
+
 ## Regras obrigatórias em TODO vídeo
 1. **Um vídeo por pedido.** Não gerar várias versões do mesmo vídeo, a não ser que o usuário peça.
 2. **Animação sempre diferente e com novidade, conforme as referências.** A cada nova conversa/vídeo:
