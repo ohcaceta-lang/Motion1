@@ -1,0 +1,313 @@
+<!doctype html>
+<html><head><meta charset="utf-8"></head>
+<body>
+<script src="assets/words.js"></script>
+<script src="lib.js"></script>
+<script>
+/* Pyrozzar / Salto — atualização. Referência: branding-why-storytelling-earnedits
+   (um "mundo" por frase: tela de bloqueio + notificação com zoom para dentro, HUD técnico com callout,
+   visor de câmera REC, giroflex, holofote, infográfico, página de jornal com grifo, barra de busca).
+   Objeto-herói constante: a FITA ZEBRADA de interdição, que atravessa as cenas. */
+const AM = '#ffd21a', VERM = '#ff2d2d', LAR = '#ff7a1a', BR = '#ffffff';
+const A = 'assets/';
+const N = window.WORDS.length - 1;
+const C1b = ws(4) - 0.1, C2 = ws(13) - 0.12, C3 = ws(25) - 0.12, C3b = ws(33) - 0.1, C4 = ws(41) - 0.12,
+      C5 = ws(56) - 0.1, C6 = ws(62) - 0.12, C7 = ws(73) - 0.12, C8 = ws(84) - 0.12, C9 = ws(89) - 0.12;
+const DUR = Math.ceil((we(N) + 2.0) * 10) / 10;
+
+/* ---------- utilitários desta peça ---------- */
+const credito = (s, txt) => { const d = el('div', 'abs', s.el, txt);
+  d.style.cssText = 'left:40px;bottom:46px;white-space:nowrap;font:500 15px Inter;color:rgba(255,255,255,.78);background:rgba(0,0,0,.45);padding:5px 10px;border-radius:6px;letter-spacing:.02em'; return d; };
+/* fita zebrada (objeto-herói): faixa amarela listrada com texto correndo, entra varrendo a tela */
+function fita(s, y, ang, t0, o = {}) {
+  const w = el('div', 'abs', s.el); const h = o.h || 58;
+  const txt = ('ÁREA INTERDITADA • DEFESA CIVIL • NÃO ULTRAPASSE • ').repeat(6);
+  w.style.cssText = `left:-260px;top:${y}px;width:1240px;height:${h}px;transform-origin:50% 50%;overflow:hidden;
+    background:repeating-linear-gradient(-45deg,${AM} 0 34px,#111 34px 68px);box-shadow:0 10px 30px rgba(0,0,0,.55);opacity:0`;
+  const band = el('div', 'abs', w, `<span style="display:inline-block;white-space:nowrap;font:400 ${h * 0.5}px Anton;color:#111;letter-spacing:.06em;background:${AM};padding:0 14px">${txt}</span>`);
+  band.style.cssText = `left:0;top:${h * 0.16}px;height:${h * 0.68}px;line-height:${h * 0.68}px;overflow:visible`;
+  s.updates.push(t => { const p = easeOutExpo(prog(t, t0, t0 + 0.45));
+    w.style.opacity = t >= t0 ? 1 : 0;
+    w.style.transform = `rotate(${ang}deg) translateX(${(1 - p) * (o.dir || 1) * -1300}px) translateY(${Math.sin(t * 2.2 + y) * 3}px)`;
+    band.style.transform = `translateX(${-((t - t0) * 70) % 400}px)`; });
+  return w;
+}
+/* cantos de HUD em volta de um retângulo */
+function cantos(s, x, y, w, h, cor, t0) {
+  const L = 34, out = [];
+  [[x, y, 'border-left', 'border-top'], [x + w - L, y, 'border-right', 'border-top'], [x, y + h - L, 'border-left', 'border-bottom'], [x + w - L, y + h - L, 'border-right', 'border-bottom']]
+    .forEach(([cx, cy, b1, b2], k) => { const c = el('div', 'abs', s.el); c.style.cssText = `left:${cx}px;top:${cy}px;width:${L}px;height:${L}px;${b1}:4px solid ${cor};${b2}:4px solid ${cor}`; out.push(c); });
+  s.updates.push(t => { const p = easeOutExpo(prog(t, t0, t0 + 0.5)); out.forEach((c, k) => { const dx = (k % 2 ? 1 : -1) * (1 - p) * 40, dy = (k < 2 ? -1 : 1) * (1 - p) * 40; c.style.transform = `translate(${dx}px,${dy}px)`; c.style.opacity = p; }); });
+}
+const contador = (s, css, alvo, t0, d, fmt = v => v) => { const c = el('div', 'abs', s.el); c.dataset.evitar = 'contador';
+  c.style.cssText = `left:360px;white-space:nowrap;${css};line-height:1`;
+  s.updates.push(t => { const p = prog(t, t0, t0 + d); c.textContent = fmt(Math.round(alvo * easeOut(p)));
+    c.style.opacity = t >= t0 - 0.02 ? 1 : 0; c.style.transform = `translate(-50%,-50%) scale(${t >= t0 ? lerp(1.25, 1, easeOutExpo(prog(t, t0, t0 + 0.35))) : 0})`; });
+  return c; };
+
+/* ===== Cena 1a — TELA DE BLOQUEIO + notificação da Defesa Civil (zoom para dentro no fim) ===== */
+{
+  const s = scene(0, C1b, '#000', 0.01);
+  bg(s, A + 'foto_tvtem.jpg', { z0: 1.25, z1: 1.12, filter: 'blur(14px) brightness(.55) saturate(1.2)' });
+  shade(s, 'background:linear-gradient(180deg,rgba(10,10,30,.55),rgba(0,0,0,.25) 40%,rgba(0,0,0,.75))');
+  const dia = el('div', 'abs', s.el, 'sábado, 14 de novembro'); dia.style.cssText = 'left:360px;top:150px;transform:translateX(-50%);white-space:nowrap;font:500 26px Inter;color:rgba(255,255,255,.85)';
+  const hora = el('div', 'abs', s.el, '9:41'); hora.style.cssText = 'left:360px;top:180px;transform:translateX(-50%);font:300 150px/1 Inter;letter-spacing:-.04em;color:rgba(255,255,255,.92)';
+  const nt = el('div', 'abs', s.el, `
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px">
+      <div style="width:44px;height:44px;border-radius:11px;background:${VERM};display:flex;align-items:center;justify-content:center"><img src="${tw('26a0')}" style="width:28px"></div>
+      <div style="font:700 22px Inter;color:#111;letter-spacing:.02em">DEFESA CIVIL</div><div style="margin-left:auto;font:500 19px Inter;color:#666">agora</div></div>
+    <div style="font:700 25px Inter;color:#111;line-height:1.25">Alerta • Salto (SP)</div>
+    <div style="font:500 23px Inter;color:#333;line-height:1.3">Bloqueio mantido no entorno da fábrica atingida por explosão.</div>`);
+  nt.dataset.evitar = 'notificação';
+  nt.style.cssText = 'left:40px;top:400px;width:640px;padding:20px 24px;border-radius:30px;background:rgba(245,245,247,.93);box-shadow:0 22px 60px rgba(0,0,0,.55);transform-origin:50% 50%';
+  s.updates.push(t => { const p = pop(t, 0.12, 0.5), z = easeIn(prog(t, C1b - 0.4, C1b));
+    nt.style.opacity = t > 0.12 ? 1 : 0;
+    nt.style.transform = `translateY(${(1 - Math.min(p, 1)) * -160}px) scale(${Math.max(p, 0.001) * (1 + z * 6)})`; nt.style.filter = `blur(${z * 6}px)`; });
+  bloco(s, 740, [
+    { seq: [0, 1, { font: FONTS.sans(50, 700), color: BR, outAt: C1b - 0.35 }, { 1: { color: AM } }] },
+    { seq: [2, 3, { font: FONTS.dms(118, true), color: BR, outAt: C1b - 0.35 }] },
+  ]);
+  credito(s, 'Foto de fundo: Victor Cardoso / TV TEM (via g1)');
+}
+
+/* ===== Cena 1b — Nair Maria: bloqueio na rua, fitas cruzando ===== */
+{
+  const s = scene(C1b, C2, '#000', 0.018);
+  bg(s, A + 'bloqueio.jpg', { z0: 1.35, z1: 1.1, py: -30, filter: 'brightness(.5) contrast(1.15) saturate(1.1)' });
+  shade(s, 'background:radial-gradient(ellipse at 50% 52%, rgba(0,0,0,.25), rgba(0,0,0,.82))');
+  fita(s, 230, -7, C1b + 0.05);
+  fita(s, 1010, 6, ws(12), { dir: -1 });
+  const b = bloco(s, 640, [
+    { seq: [4, 5, { font: FONTS.sans(50, 600), color: BR }] },
+    { seq: [6, 7, { font: FONTS.caps(132), color: AM, glow: 'rgba(255,210,26,.35)' }] },
+    { seq: [8, 11, { font: FONTS.sans(50, 600), color: BR }] },
+    { seq: [12, 12, { font: FONTS.caps(104), color: BR }] },
+  ]);
+  // caixa vermelha surgindo atrás de "BLOQUEADO"
+  const box = el('div', 'abs', s.el); box.style.cssText = `background:${VERM};transform-origin:0 50%;box-shadow:0 10px 30px rgba(255,45,45,.4)`;
+  s.el.insertBefore(box, b[3].L);
+  s.updates.push(t => { const r = b[3].L; const p = easeOutExpo(prog(t, ws(12), ws(12) + 0.3));
+    box.style.left = (360 - r.offsetWidth / 2 - 22) + 'px'; box.style.width = (r.offsetWidth + 44) + 'px';
+    box.style.top = (parseFloat(r.style.top) - 62) + 'px'; box.style.height = '124px'; box.style.transform = `scaleX(${p}) rotate(-1.5deg)`; });
+  credito(s, 'Imagem ilustrativa');
+}
+
+/* ===== Cena 2 — HUD técnico sobre a foto real da explosão, com callout ===== */
+{
+  const s = scene(C2, C3, '#0d1013', 0.012);
+  const grid = shade(s, 'background-image:linear-gradient(rgba(255,255,255,.05) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.05) 1px,transparent 1px);background-size:40px 40px');
+  const X = 40, Y = 180, W = 640, H = 390;
+  const win = el('div', 'abs', s.el); win.dataset.evitar = 'foto'; win.style.cssText = `left:${X}px;top:${Y}px;width:${W}px;height:${H}px;overflow:hidden;border-radius:4px`;
+  const im = el('img', 'abs', win); im.src = A + 'foto_eliandro.jpg'; im.style.cssText = 'left:0;top:0;width:100%;height:100%;object-fit:cover;filter:contrast(1.1) saturate(1.1)';
+  cantos(s, X - 14, Y - 14, W + 28, H + 28, AM, C2);
+  // réguas e códigos laterais
+  const reg = el('div', 'abs', s.el, Array.from({ length: 21 }, (_, i) => `<div style="height:${i % 5 ? 8 : 18}px;width:2px;background:rgba(255,255,255,.5)"></div>`).join(''));
+  reg.style.cssText = `left:${X}px;top:${Y + H + 24}px;width:${W}px;display:flex;justify-content:space-between;align-items:flex-start`;
+  const cod = el('div', 'abs', s.el, 'SALTO-SP &nbsp;23°12′S &nbsp;47°17′W &nbsp;•&nbsp; 13/11 &nbsp;10:30');
+  cod.style.cssText = `left:${X}px;top:${Y - 44}px;white-space:nowrap;font:400 19px Type;color:${AM};letter-spacing:.08em`;
+  // callout ligado ao fogo
+  const sv = el('div', 'abs', s.el, `<svg width="720" height="1280"><polyline id="cl" points="300,430 420,585 600,585" fill="none" stroke="${AM}" stroke-width="3"/><circle cx="300" cy="430" r="9" fill="${AM}"/></svg>`);
+  sv.style.cssText = 'left:0;top:0;pointer-events:none'; const pl = sv.querySelector('#cl'), dot = sv.querySelector('circle'); const PL = 420;
+  pl.style.strokeDasharray = PL;
+  const tag = el('div', 'abs', s.el, `PYROZZAR<span style="font:500 15px Inter;display:block;letter-spacing:.06em;color:#111">INDÚSTRIA QUÍMICA • DESDE 1973</span>`);
+  tag.dataset.evitar = 'etiqueta';
+  tag.style.cssText = `left:600px;top:585px;transform:translate(-100%,-50%);white-space:nowrap;font:400 34px/1 Anton;color:#111;background:${AM};padding:8px 14px;letter-spacing:.04em`;
+  s.updates.push(t => { const p = prog(t, C2 + 0.05, s.end);
+    im.style.transform = `scale(${lerp(1.08, 1.28, easeInOut(p))}) translate(${lerp(0, -18, p)}px, ${lerp(0, 8, p)}px)`;
+    const shake = t > ws(16) && t < ws(16) + 0.4 ? Math.sin(t * 90) * 7 * (1 - prog(t, ws(16), ws(16) + 0.4)) : 0;
+    win.style.transform = `translate(${shake}px,${shake * 0.6}px)`;
+    const q = easeInOut(prog(t, ws(19) - 0.1, ws(19) + 0.35)); pl.style.strokeDashoffset = PL * (1 - q); dot.style.opacity = q > 0 ? 1 : 0;
+    const r = easeOutExpo(prog(t, ws(19) + 0.25, ws(19) + 0.6)); tag.style.opacity = r; tag.style.transform = `translate(-100%,-50%) scale(${lerp(0.6, 1, r)})`;
+    grid.style.backgroundPosition = `0 ${t * 12}px`; });
+  bloco(s, 905, [
+    { seq: [13, 15, { font: FONTS.type(40), color: '#d9dde2' }] },
+    { seq: [16, 16, { font: FONTS.caps(128), color: LAR, glow: 'rgba(255,122,26,.45)' }] },
+    { seq: [17, 19, { font: FONTS.sans(50, 600), color: BR, text: { 19: 'Pyrozzar' } }, { 19: { font: FONTS.dms(64), color: AM } }] },
+    { seq: [20, 22, { font: FONTS.sans(42, 500), color: '#c9ced4' }] },
+    { seq: [23, 24, { font: FONTS.sans(42, 500), color: '#c9ced4' }] },
+  ]);
+  credito(s, 'Foto: Eliandro Figueira / Arquivo pessoal (via g1)');
+}
+
+/* ===== Cena 3 — visor de câmera REC sobre a imagem do JN + contador de feridos ===== */
+{
+  const s = scene(C3, C3b, '#000', 0.016);
+  bg(s, A + 'foto_jn.jpg', { z0: 1.0, z1: 1.14, px: -40, filter: 'brightness(.42) contrast(1.15) saturate(.9)' });
+  shade(s, 'background:radial-gradient(ellipse at 50% 55%, rgba(0,0,0,.1), rgba(0,0,0,.7))');
+  const g = el('div', 'abs', s.el); g.style.cssText = 'left:40px;top:120px;width:640px;height:1020px;border:1px solid rgba(255,255,255,.18);background:linear-gradient(90deg,transparent 33.2%,rgba(255,255,255,.18) 33.3%,transparent 33.5%,transparent 66.5%,rgba(255,255,255,.18) 66.6%,transparent 66.8%),linear-gradient(180deg,transparent 33.2%,rgba(255,255,255,.18) 33.3%,transparent 33.5%,transparent 66.5%,rgba(255,255,255,.18) 66.6%,transparent 66.8%)';
+  const rec = el('div', 'abs', s.el, `<span id="rd" style="display:inline-block;width:18px;height:18px;border-radius:50%;background:${VERM};margin-right:10px;vertical-align:-1px"></span>REC`);
+  rec.style.cssText = 'left:66px;top:146px;white-space:nowrap;font:700 26px Inter;color:#fff;letter-spacing:.08em';
+  const tc = el('div', 'abs', s.el); tc.style.cssText = 'right:66px;top:146px;white-space:nowrap;font:500 24px Type;color:#fff';
+  const bat = el('div', 'abs', s.el, '4K • 30 &nbsp;▮▮▮▯'); bat.style.cssText = 'right:66px;top:1086px;white-space:nowrap;font:500 20px Inter;color:rgba(255,255,255,.85)';
+  const rd = rec.querySelector('#rd');
+  s.updates.push(t => { rd.style.opacity = Math.floor(t * 2) % 2 ? 0.2 : 1; const sec = 10 * 3600 + 30 * 60 + (t - C3) * 1;
+    const f = Math.floor((t * 30) % 30); tc.textContent = `00:${String(Math.floor((t - C3) + 12)).padStart(2, '0')}:${String(f).padStart(2, '0')}`; });
+  const c12 = contador(s, `font:400 250px Anton;color:${BR};text-shadow:0 10px 40px rgba(0,0,0,.6)`, 12, ws(25), 0.6);
+  bloco(s, 640, [
+    { el: c12, h: 275 },
+    { seq: [26, 28, { font: FONTS.sans(50, 700), color: BR }] },
+    { seq: [29, 32, { font: FONTS.sans(50, 700), color: BR, text: { 29: '6' } }, { 29: { font: FONTS.caps(70), color: VERM }, 32: { font: FONTS.caps(70), color: VERM, glow: 'rgba(255,45,45,.45)' } }] },
+  ]);
+  credito(s, 'Imagem: TV Globo / Jornal Nacional (reprodução via g1)');
+}
+
+/* ===== Cena 3b — giroflex: bombeiros e Defesa Civil ===== */
+{
+  const s = scene(C3b, C4, '#05060a', 0.02);
+  bg(s, A + 'foto_karen.jpg', { z0: 1.6, z1: 1.4, filter: 'blur(10px) brightness(.35) grayscale(.6)' });
+  const lr = shade(s, 'mix-blend-mode:screen'), lb = shade(s, 'mix-blend-mode:screen');
+  s.updates.push(t => { const k = (t - C3b) * 3.2; const a = Math.max(0, Math.sin(k * Math.PI)), b = Math.max(0, Math.sin((k + 1) * Math.PI));
+    lr.style.background = `radial-gradient(ellipse at 0% 20%, rgba(255,30,30,${0.75 * a}), transparent 60%)`;
+    lb.style.background = `radial-gradient(ellipse at 100% 20%, rgba(30,90,255,${0.75 * b}), transparent 60%)`; });
+  bloco(s, 640, [
+    { seq: [33, 34, { font: FONTS.sans(48, 600), color: BR }] },
+    { seq: [35, 35, { font: FONTS.caps(132), color: BR, glow: 'rgba(255,60,60,.5)' }] },
+    { seq: [36, 38, { font: FONTS.sans(48, 600), color: BR }] },
+    { seq: [39, 40, { font: FONTS.dms(86, true), color: AM }] },
+  ]);
+  fita(s, 1030, -4, ws(39));
+  credito(s, 'Foto de fundo: Karen Aparecida de Oliveira / Arquivo pessoal (via g1)');
+}
+
+/* ===== Cena 4 — cronômetro de 16 horas sobre o rescaldo ===== */
+{
+  const s = scene(C4, C5, '#000', 0.014);
+  bg(s, A + 'rescaldo.jpg', { z0: 1.05, z1: 1.22, py: 20, filter: 'brightness(.42) contrast(1.15)' });
+  shade(s, 'background:linear-gradient(180deg,rgba(0,0,0,.55),rgba(0,0,0,.25) 35%,rgba(0,0,0,.8))');
+  const chip = el('div', 'abs', s.el, `<img src="${tw('1f4a7')}" style="width:30px;vertical-align:-6px;margin-right:10px">400 MIL LITROS DE ÁGUA`);
+  chip.dataset.evitar = 'chip';
+  chip.style.cssText = 'left:360px;top:240px;white-space:nowrap;font:400 30px Anton;letter-spacing:.05em;color:#fff;background:rgba(30,120,255,.85);padding:10px 22px;border-radius:40px';
+  const anel = el('div', 'abs', s.el, `<svg width="300" height="300"><circle cx="150" cy="150" r="138" fill="none" stroke="rgba(255,255,255,.15)" stroke-width="8"/><circle id="ar" cx="150" cy="150" r="138" fill="none" stroke="${AM}" stroke-width="8" stroke-linecap="round" transform="rotate(-90 150 150)"/></svg>`);
+  const ar = anel.querySelector('#ar'), AR = 2 * Math.PI * 138; ar.style.strokeDasharray = AR;
+  const c16 = contador(s, `font:400 170px Anton;color:${BR}`, 16, ws(44), 0.7, v => v + 'h');
+  s.updates.push(t => { const p = pop(t, C4 + 0.1, 0.45); chip.style.transform = `translate(-50%,-50%) scale(${p})`; chip.style.opacity = t > C4 + 0.1 ? 1 : 0;
+    anel.style.cssText = `left:${360 - 150}px;top:${parseFloat(c16.style.top) - 150}px;opacity:${t >= ws(44) ? 1 : 0}`;
+    ar.style.strokeDashoffset = AR * (1 - easeOut(prog(t, ws(44), ws(44) + 0.7))); });
+  bloco(s, 700, [
+    { seq: [41, 43, { font: FONTS.sans(50, 600), color: BR }, { 42: { color: LAR } }] },
+    { el: c16, h: 320 },
+    { seq: [46, 49, { font: FONTS.sans(46, 600), color: BR }] },
+    { seq: [50, 53, { font: FONTS.sans(46, 600), color: BR, text: { 51: '2h' } }, { 51: { font: FONTS.caps(66), color: AM } }] },
+    { seq: [54, 55, { font: FONTS.sans(46, 600), color: BR }] },
+  ]);
+  credito(s, 'Imagem ilustrativa');
+}
+
+/* ===== Cena 5 — corte seco: holofote, "o perigo ainda não passou" ===== */
+{
+  const s = scene(C5, C6, '#0b2a2e', 0.03);
+  shade(s, 'background:radial-gradient(ellipse at 50% 120%, #06181b, #0b2a2e 60%, #123d42)');
+  const tx = el('div', 'abs', s.el, '<svg width="100%" height="100%"><rect width="100%" height="100%" filter="url(#paperF)"/></svg>'); tx.style.cssText = 'inset:0;opacity:.5;mix-blend-mode:overlay';
+  const spot = shade(s, 'mix-blend-mode:screen');
+  s.updates.push(t => { const a = Math.sin((t - C5) * 2.4) * 8;
+    spot.style.background = `conic-gradient(from ${180 - 16 + a}deg at 50% -8%, rgba(255,250,220,.0) 0deg, rgba(255,250,220,.33) 8deg, rgba(255,250,220,.33) 24deg, rgba(255,250,220,0) 32deg, transparent 360deg)`;
+    s.el.style.transform += ` rotate(${Math.sin((t - C5) * 3) * 0.6}deg)`; });
+  bloco(s, 640, [
+    { seq: [56, 58, { font: FONTS.caps(92), color: BR }] },
+    { seq: [59, 60, { font: FONTS.caps(92), color: BR }] },
+    { seq: [61, 61, { font: FONTS.caps(176), color: AM, glow: 'rgba(255,210,26,.4)' }] },
+  ], { lh: 1.4 });
+}
+
+/* ===== Cena 6 — condomínio interditado: carimbo + fita ===== */
+{
+  const s = scene(C6, C7, '#000', 0.016);
+  bg(s, A + 'condominio.jpg', { z0: 1.1, z1: 1.28, py: -40, origin: '50% 30%', filter: 'brightness(.5) contrast(1.15) saturate(.9)' });
+  shade(s, 'background:linear-gradient(180deg,rgba(0,0,0,.25),rgba(0,0,0,.55) 45%,rgba(0,0,0,.85))');
+  const st = el('div', 'abs', s.el, 'INTERDITADO'); st.dataset.evitar = 'carimbo';
+  st.style.cssText = `left:360px;top:300px;white-space:nowrap;font:400 84px Anton;color:${VERM};border:8px solid ${VERM};padding:0 26px;filter:url(#rough);letter-spacing:.04em;background:rgba(0,0,0,.25)`;
+  s.updates.push(t => { const q = prog(t, ws(69), ws(69) + 0.18);
+    st.style.opacity = q > 0 ? 0.95 : 0; st.style.transform = `translate(-50%,-50%) rotate(-9deg) scale(${q > 0 ? lerp(2.4, 1, easeOutExpo(q)) : 0})`;
+    if (t > ws(69) && t < ws(69) + 0.25) s.el.style.transform += ` translate(${Math.sin(t * 120) * 6}px,${Math.cos(t * 100) * 5}px)`; });
+  bloco(s, 720, [
+    { seq: [62, 64, { font: FONTS.sans(48, 600), color: BR }, { 63: { color: LAR } }] },
+    { seq: [65, 68, { font: FONTS.sans(48, 600), color: BR }] },
+    { seq: [69, 69, { font: FONTS.caps(112), color: AM }] },
+    { seq: [70, 72, { font: FONTS.sans(48, 600), color: BR }] },
+  ]);
+  fita(s, 1020, 5, ws(71));
+  credito(s, 'Imagem ilustrativa');
+}
+
+/* ===== Cena 7 — infográfico: 500 famílias (500 pontos acendendo) ===== */
+{
+  const s = scene(C7, C8, 'radial-gradient(ellipse at 50% 30%, #13213a, #070b14 70%)', 0.012);
+  const gw = el('div', 'abs', s.el); gw.dataset.evitar = 'infográfico';
+  gw.style.cssText = 'left:110px;top:140px;width:500px;height:400px;display:grid;grid-template-columns:repeat(25,1fr);gap:6px';
+  const dots = Array.from({ length: 500 }, () => { const d = el('div', '', gw); d.style.cssText = 'border-radius:50%;background:rgba(255,255,255,.1);aspect-ratio:1'; return d; });
+  const ordem = dots.map((d, i) => [d, ((i * 7919) % 500) / 500]);
+  bloco(s, 840, [
+    { seq: [73, 74, { font: FONTS.sans(48, 600), color: '#cfd8e6' }] },
+    { seq: [75, 75, { font: FONTS.caps(190), color: AM, text: { 75: '500' }, glow: 'rgba(255,210,26,.35)' }] },
+    { seq: [76, 76, { font: FONTS.dms(84, true), color: BR }] },
+    { seq: [77, 79, { font: FONTS.sans(46, 600), color: BR }, { 79: { color: LAR } }] },
+    { seq: [80, 83, { font: FONTS.sans(46, 600), color: BR }] },
+  ]);
+  s.updates.push(t => { const p = easeOut(prog(t, ws(75), ws(76) + 0.3));
+    ordem.forEach(([d, r]) => { const on = r < p; d.style.background = on ? AM : 'rgba(255,255,255,.1)'; d.style.boxShadow = on ? '0 0 8px rgba(255,210,26,.6)' : 'none'; });
+    gw.style.transform = `translateY(${Math.sin(t * 1.3) * 4}px) scale(${lerp(0.96, 1.02, prog(t, C7, C8))})`; });
+}
+
+/* ===== Cena 8 — página de jornal: "causas apuradas" com grifo ===== */
+{
+  const s = scene(C8, C9, '#e9e0cc', 0.02);
+  const tx = el('div', 'abs', s.el, '<svg width="100%" height="100%"><rect width="100%" height="100%" filter="url(#paperF)"/></svg>'); tx.style.cssText = 'inset:0;opacity:.9';
+  const mast = el('div', 'abs', s.el, `<div style="font:900 64px/1 Play;font-style:normal;color:#1b1814;letter-spacing:-.01em">O Plantão</div>
+    <div style="border-top:3px solid #1b1814;border-bottom:1px solid #1b1814;margin-top:10px;padding:5px 0;font:400 17px Type;color:#1b1814;display:flex;justify-content:space-between"><span>SÁBADO, 14 DE NOVEMBRO DE 2026</span><span>EDIÇÃO EXTRA</span></div>`);
+  mast.style.cssText = 'left:40px;top:120px;width:640px;text-align:center';
+  const ph = el('div', 'abs', s.el); ph.dataset.evitar = 'foto';
+  ph.style.cssText = 'left:40px;top:250px;width:640px;height:330px;overflow:hidden;border:2px solid #1b1814';
+  const pim = el('img', 'abs', ph); pim.src = A + 'tambores.jpg'; pim.style.cssText = 'left:0;top:-160px;width:100%;filter:grayscale(1) contrast(1.35) brightness(1.05) sepia(.25)';
+  el('div', 'ht', ph);
+  const legenda = el('div', 'abs', s.el, 'Polícia Civil e perícia devem investigar o que provocou a explosão. (imagem ilustrativa)');
+  legenda.style.cssText = 'left:40px;top:592px;width:640px;font:italic 400 17px DMS;color:#4a4136';
+  const b = bloco(s, 800, [
+    { seq: [84, 85, { font: FONTS.serif(100), color: '#1b1814', from: '#b9ab92' }] },
+    { seq: [86, 88, { font: FONTS.sans(52, 800), color: '#1b1814', from: '#b9ab92' }] },
+  ]);
+  const gr = el('div', 'abs', s.el); gr.style.cssText = `background:${AM};mix-blend-mode:multiply;transform-origin:0 50%;opacity:.85`;
+  s.updates.push(t => { const p = prog(t, C8, C9); pim.style.transform = `scale(${lerp(1.05, 1.18, p)})`;
+    const sp = b[1].items[2].sp, r = b[1].L; const q = easeInOut(prog(t, ws(88) + 0.1, ws(88) + 0.45));
+    const x0 = r.offsetLeft - r.offsetWidth / 2 + sp.offsetLeft - 8;
+    gr.style.left = x0 + 'px'; gr.style.top = (parseFloat(r.style.top) - 4) + 'px'; gr.style.width = (sp.offsetWidth + 16) + 'px'; gr.style.height = '40px';
+    gr.style.transform = `scaleX(${q}) rotate(-1deg)`; });
+}
+
+/* ===== Cena 9 — CTA: barra de busca digitando + caixa de comentário ===== */
+{
+  const s = scene(C9, DUR, 'linear-gradient(180deg,#f3f5f8,#dfe5ee)', 0.01);
+  const bar = el('div', 'abs', s.el, `<img src="${tw('1f50d')}" style="width:30px;margin-right:16px"><span id="q" style="font:500 30px Inter;color:#1b1f24"></span><span id="cur" style="display:inline-block;width:3px;height:34px;background:#1b6ef3;margin-left:3px"></span>`);
+  bar.dataset.evitar = 'busca';
+  bar.style.cssText = 'left:40px;top:190px;width:640px;height:84px;padding:0 28px;border-radius:44px;background:#fff;display:flex;align-items:center;box-shadow:0 14px 40px rgba(20,40,80,.18)';
+  const q = bar.querySelector('#q'), cur = bar.querySelector('#cur'); const busca = 'nair maria salto hoje';
+  const cm = el('div', 'abs', s.el, `<div style="display:flex;align-items:center;gap:14px"><div style="width:52px;height:52px;border-radius:50%;background:linear-gradient(135deg,${AM},${LAR})"></div>
+    <div style="flex:1;font:500 26px Inter;color:#8a929c">Adicione um comentário...</div>
+    <div id="env" style="font:700 24px Inter;color:#fff;background:#fe2c55;padding:12px 22px;border-radius:12px">Enviar</div></div>`);
+  cm.dataset.evitar = 'comentário';
+  cm.style.cssText = 'left:40px;top:960px;width:640px;padding:18px 20px;border-radius:24px;background:#fff;box-shadow:0 18px 50px rgba(20,40,80,.2)';
+  const mouse = el('img', 'abs', s.el); mouse.src = tw('1f446'); mouse.style.cssText = 'width:70px;left:0;top:0;filter:drop-shadow(0 6px 10px rgba(0,0,0,.3))';
+  const env = cm.querySelector('#env');
+  s.updates.push(t => { const n = Math.floor(clamp((t - C9 - 0.15) * 16, 0, busca.length)); q.textContent = busca.slice(0, n);
+    cur.style.opacity = Math.floor(t * 3) % 2 ? 0 : 1;
+    const p = pop(t, ws(93), 0.45); cm.style.transform = `translateY(${(1 - Math.min(p, 1)) * 80}px)`; cm.style.opacity = t > ws(93) ? 1 : 0;
+    const m = easeInOut(prog(t, ws(95), ws(95) + 0.7)); const click = prog(t, ws(95) + 0.75, ws(95) + 0.95);
+    mouse.style.opacity = t > ws(95) ? 1 : 0; mouse.style.transform = `translate(${lerp(700, 560, m)}px, ${lerp(1180, 1010, m)}px) scale(${1 - Math.sin(click * Math.PI) * 0.15})`;
+    env.style.transform = `scale(${1 - Math.sin(click * Math.PI) * 0.12})`; });
+  bloco(s, 610, [
+    { seq: [89, 91, { font: FONTS.sans(52, 700), color: '#1b1f24', from: '#c3cad4' }] },
+    { seq: [92, 92, { font: FONTS.caps(150), color: '#1b6ef3', from: '#c3cad4', raw: true }] },
+    { seq: [93, 95, { font: FONTS.sans(44, 600), color: '#1b1f24', from: '#c3cad4' }, { 95: { color: '#fe2c55' } }] },
+    { seq: [96, 100, { font: FONTS.sans(44, 600), color: '#1b1f24', from: '#c3cad4' }] },
+  ]);
+  fita(s, 1120, -3, ws(100), { h: 46 });
+}
+
+/* selo fixo de atualização no topo (todas as cenas) */
+const selo = el('div', 'abs', stage, `<span style="display:inline-block;width:12px;height:12px;border-radius:50%;background:${VERM};margin-right:9px;vertical-align:1px"></span>ATUALIZAÇÃO • 14/11`);
+selo.style.cssText = 'left:40px;top:50px;white-space:nowrap;font:700 19px Inter;letter-spacing:.08em;color:#fff;background:rgba(0,0,0,.55);padding:8px 14px;border-radius:8px;z-index:5';
+globalUpdate = t => { selo.style.opacity = t < C9 ? 1 : 0; };
+
+finalize({ duration: DUR, grain: 0.07, vignette: 0.45, preload: [A + 'foto_eliandro.jpg', A + 'tambores.jpg'],
+  flashes: [[C2, 0.14], [C3, 0.12], [C3b, 0.12, '255,40,40'], [C4, 0.12], [C5, 0.1, '0,0,0'], [C6, 0.12], [C7, 0.12], [C8, 0.14], [C9, 0.14]] });
+</script>
+</body></html>
