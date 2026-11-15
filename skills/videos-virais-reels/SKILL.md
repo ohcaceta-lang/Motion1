@@ -26,6 +26,7 @@ cada cena precisa de animação bonita, texto bem espaçado, recortes limpos, na
 - `references/lib-api.md`: API do motor de animação e armadilhas já resolvidas.
 - `references/roteiro-e-fatos.md`: estrutura de roteiro e checagem de fatos. Leia quando o tema envolver pessoas reais.
 - `references/referencias-pinterest.md`: **leia antes de animar**. Técnicas de animação tiradas das referências que o usuário escolheu.
+- `references/google-flow.md`: Google Flow (imagens e clipes de B-roll) rodando no PC do usuário via lote JSON; ajuste de idioma em `scripts/flow/`.
 
 ## Pré-requisitos do ambiente
 - Rede: `trends.google.com`, `news.google.com`, `g1.globo.com` (pesquisa), `pikaso.cdnpk.net` (download do Pikaso) e
@@ -79,6 +80,9 @@ Em paralelo, na mesma rodada:
   (PNG transparente). Para fotos reais baixadas fora do Pikaso, envie antes com `creations_upload_image`. Gere os objetos
   já pensando no recorte ("isolated on plain white background, studio lighting"). Confira o PNG (Read) e, se a borda
   ficou suja, refaça; dê sombra suave (`drop-shadow`) para o recorte não parecer colado.
+
+Alternativa para cenários e clipes de B-roll: **Google Flow** no PC do usuário (veja `references/google-flow.md`).
+Escreva o `lote.json`, o usuário roda e faz commit dos arquivos em `assets/`.
 
 Depois, `creations_wait`, download com curl para `assets/` e `audio_timing_get` (limit 100, pagine se precisar).
 
