@@ -1,0 +1,13 @@
+{
+  "project": "estocar-alimentos",
+  "defaults": {"ratio": "9:16", "image_model": "Nano Banana 2 Lite", "video_model": "Veo 3.1 - Lite"},
+  "jobs": [
+    {"type": "image", "name": "carrinho", "prompt": "A supermarket shopping cart overflowing with groceries, canned food, rice bags and water bottles, grayscale black and white 3D studio render, isolated on plain white background, soft shadow, no text, no people, vertical 9:16"},
+    {"type": "image", "name": "latas", "prompt": "A stack of canned food tins and plastic water bottles, grayscale black and white 3D studio render, isolated on plain white background, soft shadow, no labels, no text, vertical 9:16"},
+    {"type": "image", "name": "mochila", "prompt": "An emergency survival backpack, grayscale black and white 3D studio render, isolated on plain white background, soft shadow, no logo, no text, vertical 9:16"},
+    {"type": "image", "name": "lampada", "prompt": "A broken incandescent light bulb with cracked glass, grayscale black and white 3D studio render, isolated on plain white background, soft shadow, no text, vertical 9:16"},
+    {"type": "image", "name": "lanterna", "prompt": "A flashlight and a small portable radio side by side, grayscale black and white 3D studio render, isolated on plain white background, soft shadow, no logo, no text, vertical 9:16"},
+    {"type": "image", "name": "celular", "prompt": "A smartphone with a magnifying glass search icon on screen, floating at an angle, grayscale black and white 3D studio render, isolated on plain white background, soft shadow, no readable text, vertical 9:16"},
+    {"type": "image", "name": "megafone", "prompt": "A vintage megaphone loudspeaker, grayscale black and white 3D studio render, isolated on plain white background, soft shadow, no text, vertical 9:16"}
+  ]
+}

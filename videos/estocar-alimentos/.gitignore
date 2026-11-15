@@ -1,0 +1,8 @@
+node_modules/
+package.json
+package-lock.json
+mudo.mp4
+mix.wav
+voz_check.mp4
+render.log
+assets/*.wav

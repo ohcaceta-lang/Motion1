@@ -1,0 +1,245 @@
+<!doctype html>
+<html><head><meta charset="utf-8"></head>
+<body>
+<script src="assets/words.js"></script>
+<script src="lib.js"></script>
+<script>
+/* Estocar alimentos — ref.: vender-sem-palavras-insiderforce
+   Canvas infinito cinza com grade, câmera contínua entre "estações", conector tracejado se desenhando,
+   objetos 3D P&B recortados, caixas tracejadas, hierarquia só por peso/tamanho (Inter), um único acento vermelho
+   (FALSO / pânico), CTA em fundo branco com cursor clicando. */
+const A = 'assets/', INK = '#141414', MID = '#8b8b8b', DIM = '#d6d6d6', RED = '#e3141b', BGC = '#ededed';
+const N = window.WORDS.length - 1;
+const T = i => ws(i) - 0.12;
+// cortes de texto (cenas)
+const K = [0, T(9), T(15), T(29), T(40), T(47), T(54), T(66), T(68), T(76), T(89), T(110), T(116)];
+const DUR = Math.ceil((we(N) + 2.0) * 10) / 10;
+K.push(DUR);
+
+/* ======================= CANVAS INFINITO (fundo contínuo) ======================= */
+const cv = scene(0, K[12], BGC, 0);
+const world = el('div', 'abs', cv.el);
+world.style.cssText = 'left:0;top:0;width:0;height:0;transform-origin:0 0';
+const grid = el('div', 'abs', world);
+grid.style.cssText = `left:-1200px;top:-2400px;width:9000px;height:5200px;
+  background-image:linear-gradient(#d9d9d9 1px,transparent 1px),linear-gradient(90deg,#d9d9d9 1px,transparent 1px);
+  background-size:64px 64px;opacity:.75`;
+// estações (centro do objeto, em coordenadas do mundo)
+const P = [[0, 0], [620, -260], [1240, 40], [1900, -300], [2560, 60], [3200, -280], [3860, 80], [4520, -240], [5180, 60], [5840, -220]];
+// estação ativa por cena de texto
+const ST = [0, 1, 2, 3, 3, 4, 5, 5, 6, 7, 8, 9];
+// conector tracejado passando por todas as estações
+const svgNS = 'http://www.w3.org/2000/svg';
+const lay = el('div', 'abs', world); lay.style.cssText = 'left:-400px;top:-800px;width:7000px;height:1800px';
+lay.innerHTML = `<svg width="7000" height="1800" style="overflow:visible"><path id="con" fill="none" stroke="#9c9c9c" stroke-width="2.5" stroke-dasharray="9 9"/><path id="conMask" fill="none" stroke="${BGC}" stroke-width="8"/></svg>`;
+const OX = 400, OY = 800;
+let d = `M ${P[0][0] + OX} ${P[0][1] + OY}`;
+for (let k = 1; k < P.length; k++) { const [x0, y0] = P[k - 1], [x1, y1] = P[k]; d += ` C ${x0 + 260 + OX} ${y0 + 260 + OY}, ${x1 - 260 + OX} ${y1 + 260 + OY}, ${x1 + OX} ${y1 + OY}`; }
+const con = document.getElementById('con'), mask = document.getElementById('conMask');
+con.setAttribute('d', d); mask.setAttribute('d', d);
+const LEN = con.getTotalLength();
+// comprimento acumulado até cada estação
+const segLen = [0]; { let acc = 0; const pts = 3000; let prev = con.getPointAtLength(0), k = 1;
+  for (let i = 1; i <= pts; i++) { const L = LEN * i / pts, q = con.getPointAtLength(L);
+    if (k < P.length && Math.hypot(q.x - (P[k][0] + OX), q.y - (P[k][1] + OY)) < 6) { segLen[k] = L; k++; } prev = q; }
+  for (; k < P.length; k++) segLen[k] = LEN * k / (P.length - 1); }
+// a máscara cobre o trecho ainda não percorrido (efeito de linha se desenhando)
+mask.setAttribute('stroke-dasharray', `${LEN} ${LEN}`);
+
+// objetos 3D (PNG recortado) nas estações
+function obj(k, src, w, rot = 0) {
+  const im = el('img', 'abs', world); im.src = src;
+  im.style.cssText = `left:${P[k][0]}px;top:${P[k][1]}px;width:${w}px;filter:drop-shadow(0 26px 22px rgba(0,0,0,.22))`;
+  im.dataset.k = k; im._rot = rot; return im;
+}
+const OBJ = [
+  obj(0, A + 'carrinho.png', 380, -4), null, obj(2, A + 'latas.png', 310, 3), obj(3, A + 'mochila.png', 340, -3),
+  obj(4, A + 'celular.png', 320, 6), obj(5, A + 'lampada.png', 330, -6), obj(6, A + 'megafone.png', 340, 4),
+  null, obj(8, A + 'lanterna.png', 300, -3), obj(9, A + 'carrinho.png', 330, 5)];
+// estação 1: círculo fino se desenhando ("calma") / estação 7: relógio em traço
+const c1 = el('div', 'abs', world); c1.style.cssText = `left:${P[1][0]}px;top:${P[1][1]}px`;
+c1.innerHTML = `<svg width="300" height="300" style="transform:translate(-50%,-50%);overflow:visible"><circle id="c1" cx="150" cy="150" r="120" fill="none" stroke="#7d7d7d" stroke-width="2.5"/><circle cx="150" cy="150" r="70" fill="none" stroke="#b5b5b5" stroke-width="2" stroke-dasharray="6 8"/><text x="150" y="168" text-anchor="middle" font-family="Inter" font-weight="700" font-size="54" fill="#1b1b1b">?</text></svg>`;
+const clock = el('div', 'abs', world); clock.style.cssText = `left:${P[7][0]}px;top:${P[7][1]}px`;
+clock.innerHTML = `<svg width="300" height="300" style="transform:translate(-50%,-50%);overflow:visible;filter:drop-shadow(0 20px 18px rgba(0,0,0,.18))">
+  <circle cx="150" cy="150" r="118" fill="#f7f7f7" stroke="#1b1b1b" stroke-width="7"/>
+  ${[...Array(12)].map((_, i) => { const a = i * Math.PI / 6; return `<line x1="${150 + Math.sin(a) * 96}" y1="${150 - Math.cos(a) * 96}" x2="${150 + Math.sin(a) * 108}" y2="${150 - Math.cos(a) * 108}" stroke="#1b1b1b" stroke-width="${i % 3 ? 3 : 6}"/>`; }).join('')}
+  <line id="hh" x1="150" y1="150" x2="150" y2="96" stroke="#1b1b1b" stroke-width="8" stroke-linecap="round"/>
+  <line id="mh" x1="150" y1="150" x2="150" y2="62" stroke="#555" stroke-width="5" stroke-linecap="round"/>
+  <circle cx="150" cy="150" r="9" fill="${RED}"/></svg>`;
+// gráfico de buscas subindo (estação 4, ao lado do celular)
+const graf = el('div', 'abs', world); graf.style.cssText = `left:${P[4][0] + 120}px;top:${P[4][1] - 30}px`;
+graf.innerHTML = `<svg width="240" height="200" style="transform:translate(-30%,-50%);overflow:visible">
+  <path id="gl" d="M 0 170 L 40 160 L 80 165 L 120 140 L 150 150 L 180 90 L 205 60 L 230 8" fill="none" stroke="#141414" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+  <path id="ga" d="M 216 6 L 232 6 L 232 22" fill="none" stroke="#141414" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+// X vermelho no carrinho final
+const xc = el('div', 'abs', world); xc.style.cssText = `left:${P[9][0]}px;top:${P[9][1]}px`;
+xc.innerHTML = `<svg width="300" height="300" style="transform:translate(-50%,-50%);overflow:visible"><path id="x1" d="M 40 40 L 260 260" stroke="${RED}" stroke-width="16" stroke-linecap="round"/><path id="x2" d="M 260 40 L 40 260" stroke="${RED}" stroke-width="16" stroke-linecap="round"/></svg>`;
+// risco vermelho sobre a lâmpada (FALSO)
+const xl = el('div', 'abs', world); xl.style.cssText = `left:${P[5][0]}px;top:${P[5][1]}px`;
+xl.innerHTML = `<svg width="340" height="340" style="transform:translate(-50%,-50%);overflow:visible"><path id="xl1" d="M 20 300 L 320 40" stroke="${RED}" stroke-width="14" stroke-linecap="round"/></svg>`;
+
+const ANCHOR = [360, 315];
+const dash = (id, p) => { const e = document.getElementById(id), L = e.getTotalLength(); e.style.strokeDasharray = L; e.style.strokeDashoffset = L * (1 - p); };
+cv.updates.push(t => {
+  // estação atual e transição (a câmera desliza nos 0,7 s antes de cada corte)
+  let c = 0; for (let i = 0; i < 12; i++) if (t >= K[i] - 0.4) c = i;
+  const from = ST[Math.max(0, c - 1)], to = ST[c];
+  const p = easeInOut(prog(t, K[c] - 0.4, K[c] + 0.3));
+  const fx = lerp(P[from][0], P[to][0], p), fy = lerp(P[from][1], P[to][1], p);
+  // respiração lenta + leve arco no meio da viagem (zoom out e volta)
+  const travel = Math.sin(Math.PI * p) * (from !== to ? 1 : 0);
+  const z = 1 + 0.035 * Math.sin(t * 0.6) - 0.12 * travel + 0.02 * prog(t, K[c], K[c + 1]);
+  const dx = Math.sin(t * 0.45) * 10, dy = Math.cos(t * 0.38) * 8;
+  world.style.transform = `translate(${ANCHOR[0] + dx}px, ${ANCHOR[1] + dy}px) scale(${z}) translate(${-fx}px, ${-fy}px)`;
+  // motion blur na viagem
+  world.style.filter = travel > 0.25 ? `blur(${(travel - 0.25) * 3}px)` : '';
+  // conector desenhado até a posição atual da câmera
+  const L = lerp(segLen[from], segLen[to], p);
+  mask.setAttribute('stroke-dashoffset', -L);
+  // objetos: surgem com overshoot quando a câmera chega; giro leve e flutuação
+  OBJ.forEach((im, k) => { if (!im) return;
+    const first = ST.indexOf(k), t0 = K[first] - 0.35;
+    const s = t < t0 ? 0 : backOut(prog(t, t0, t0 + 0.55));
+    const fl = Math.sin(t * 1.4 + k) * 6;
+    im.style.transform = `translate(-50%,-50%) translateY(${fl}px) rotate(${im._rot + Math.sin(t * 0.8 + k) * 2}deg) scale(${s})`;
+    im.style.opacity = s > 0 ? 1 : 0; });
+  // lâmpada piscando (apagão)
+  const lb = OBJ[5]; if (t > ws(61) && t < K[7]) { const f = Math.sin(t * 43) > 0.55 || Math.sin(t * 17) > 0.9; lb.style.filter = `drop-shadow(0 26px 22px rgba(0,0,0,.22)) brightness(${f ? 0.45 : 1})`; }
+  else lb.style.filter = 'drop-shadow(0 26px 22px rgba(0,0,0,.22))';
+  dash('c1', prog(t, K[1] - 0.2, K[1] + 0.8));
+  c1.style.opacity = t > K[1] - 0.3 ? 1 : 0;
+  // relógio: ponteiros girando rápido ("demorar")
+  const ang = t > K[9] ? (t - K[9]) * 260 : 0;
+  document.getElementById('mh').setAttribute('transform', `rotate(${ang} 150 150)`);
+  document.getElementById('hh').setAttribute('transform', `rotate(${ang / 12} 150 150)`);
+  clock.style.transform = `scale(${t < K[9] - 0.3 ? 0 : backOut(prog(t, K[9] - 0.3, K[9] + 0.25))})`;
+  dash('gl', prog(t, ws(49), we(53))); dash('ga', prog(t, we(53) - 0.2, we(53) + 0.1));
+  dash('x1', prog(t, ws(113), ws(113) + 0.2)); dash('x2', prog(t, ws(113) + 0.15, ws(113) + 0.35));
+  dash('xl1', prog(t, ws(67), ws(67) + 0.22));
+  // tremor no "explodiram" e no "FALSO"
+  const sh = (a, b, m) => t > a && t < b ? Math.sin(t * 90) * m * (1 - prog(t, a, b)) : 0;
+  cv.el.style.transform = `translate(${sh(ws(53), ws(53) + 0.5, 9) + sh(ws(67), ws(67) + 0.4, 12)}px, 0)`;
+});
+
+/* ======================= microtipografia fixa (moldura editorial) ======================= */
+const frame = scene(0, K[12], 'transparent', 0);
+frame.el.innerHTML = `
+  <div class="abs" style="left:40px;top:44px;font:600 17px Inter;letter-spacing:.14em;color:#7a7a7a">ENTENDA · KIT DE EMERGÊNCIA</div>
+  <div class="abs" style="right:40px;top:44px;font:600 17px Inter;letter-spacing:.14em;color:#7a7a7a">15.11.2026</div>
+  <div class="abs" id="chap" style="left:40px;top:72px;font:700 17px Inter;letter-spacing:.1em;color:#141414"></div>
+  <div class="abs" style="left:40px;bottom:46px;font:500 15px Inter;color:#9a9a9a">Fontes: Defesa Civil Nacional · MIDR · governo do Reino Unido</div>
+  <div class="abs" id="bar" style="left:40px;right:40px;bottom:30px;height:3px;background:#d4d4d4"><div id="barf" style="height:100%;width:0;background:#141414"></div></div>`;
+const CH = ['01 O MEDO', '01 O MEDO', '02 DE ONDE VEIO', '02 DE ONDE VEIO', '02 DE ONDE VEIO', '02 DE ONDE VEIO', '03 O BOATO', '03 O BOATO', '04 A VERDADE', '04 A VERDADE', '05 O KIT', '05 O KIT'];
+frame.updates.push(t => {
+  let c = 0; for (let i = 0; i < 12; i++) if (t >= K[i]) c = i;
+  document.getElementById('chap').textContent = CH[c];
+  document.getElementById('barf').style.width = (100 * t / K[12]) + '%';
+});
+
+/* ======================= helpers de texto ======================= */
+const S = (sz, w = 600) => FONTS.sans(sz, w);
+const sec = sz => ({ font: S(sz, 500), color: MID, from: DIM });          // palavra de ligação: cinza, regular
+const key = (sz, c = INK) => ({ font: S(sz, 800), color: c, from: DIM });  // palavra-chave: preta, bold
+const txt = (a, b) => scene(a, b, 'transparent', 0);
+// caixa tracejada que se desenha em volta de uma linha
+function caixa(s, rec, t0, cor = '#8f8f8f', pad = 14) {
+  const b = el('div', 'abs', s.el);
+  b.style.cssText = `border:2.5px dashed ${cor};border-radius:10px;pointer-events:none`;
+  s.updates.push(t => {
+    const w = rec.L.offsetWidth, h = rec.L.offsetHeight * 0.92, p = easeOut(prog(t, t0, t0 + 0.4));
+    b.style.left = (360 - w / 2 - pad) + 'px'; b.style.top = (parseFloat(rec.L.style.top) - h / 2 - pad * 0.5) + 'px';
+    b.style.width = (w + pad * 2) + 'px'; b.style.height = (h + pad) + 'px';
+    b.style.clipPath = `inset(0 ${100 - p * 100}% 0 0)`; b.style.opacity = p > 0 ? 1 : 0;
+  });
+  return b;
+}
+// sublinhado/risco desenhado sob (ou através de) uma linha
+function risco(s, rec, t0, { cor = INK, dy = 0.42, esp = 6 } = {}) {
+  const b = el('div', 'abs', s.el);
+  s.updates.push(t => {
+    const w = rec.L.offsetWidth, h = rec.L.offsetHeight, p = easeOut(prog(t, t0, t0 + 0.3));
+    b.style.cssText = `left:${360 - w / 2 - 6}px;top:${parseFloat(rec.L.style.top) + h * dy}px;height:${esp}px;width:${(w + 12) * p}px;background:${cor};border-radius:3px`;
+  });
+}
+
+const YC = 660;
+/* 1 — gancho */
+{ const s = txt(K[0], K[1]);
+  bloco(s, YC, [{ seq: [0, 2, sec(46)] }, { seq: [3, 6, sec(46)] }, { seq: [7, 8, key(92)] }]); }
+/* 2 — "calma" */
+{ const s = txt(K[1], K[2]);
+  const b = bloco(s, YC, [{ seq: [9, 10, key(96)] }, { seq: [11, 14, sec(46)] }]);
+  caixa(s, b[0], ws(10) + 0.1); }
+/* 3 — Reino Unido, três dias */
+{ const s = txt(K[2], K[3]);
+  const b = bloco(s, YC, [{ seq: [15, 17, sec(44)] }, { seq: [18, 19, key(84)] }, { seq: [25, 26, sec(44)] }, { seq: [27, 28, key(84)] }]);
+  const o = el('div', 'abs', s.el); o.innerHTML = `<svg width="420" height="150" style="overflow:visible"><ellipse id="el3" cx="210" cy="75" rx="186" ry="50" fill="none" stroke="${INK}" stroke-width="4" transform="rotate(-3 210 75)"/></svg>`;
+  s.updates.push(t => { o.style.left = '150px'; o.style.top = (parseFloat(b[3].L.style.top) - 75) + 'px'; dash('el3', prog(t, ws(28), ws(28) + 0.45)); o.style.opacity = t > ws(28) ? 1 : 0; }); }
+/* 4a — 6 de novembro, Defesa Civil */
+{ const s = txt(K[3], K[4]);
+  const b = bloco(s, YC, [{ seq: [30, 34, sec(44)] }, { seq: [36, 37, key(84)] }, { seq: [38, 39, sec(44)] }]);
+  risco(s, b[1], we(37)); }
+/* 4b — kit de 72 horas (contador) */
+{ const s = txt(K[4], K[5]);
+  const n = el('div', 'abs', s.el); n.dataset.evitar = 'contador';
+  n.style.cssText = `left:360px;font:900 190px/1 Inter;letter-spacing:-.06em;color:${INK};white-space:nowrap`;
+  bloco(s, YC, [{ seq: [40, 42, sec(46)] }, { el: n, h: 190 }, { seq: [46, 46, key(60)] }]);
+  s.updates.push(t => { const p = prog(t, ws(43), we(45)); n.textContent = Math.round(72 * easeOut(p));
+    n.style.opacity = t > ws(43) - 0.1 ? 1 : 0; n.style.transform = `translate(-50%,-50%) scale(${1 + 0.06 * Math.sin(Math.PI * prog(t, we(45), we(45) + 0.3))})`; }); }
+/* 5 — buscas explodiram */
+{ const s = txt(K[5], K[6]);
+  const b = bloco(s, YC, [{ seq: [48, 49, sec(46)] }, { seq: [50, 52, { font: S(54, 700), color: INK, from: DIM }] }, { seq: [53, 53, key(96)] }]);
+  b[2].extra = t => t > ws(53) && t < ws(53) + 0.5 ? `translateX(${Math.sin(t * 90) * 6}px)` : ''; }
+/* 6 — boato do apagão */
+{ const s = txt(K[6], K[7]);
+  bloco(s, YC, [{ seq: [54, 55, sec(44)] }, { seq: [56, 58, sec(44)] }, { seq: [61, 62, key(80)] }, { seq: [63, 65, { font: S(54, 700), color: INK, from: DIM, text: { 65: '17' } }] }]); }
+/* 7 — É FALSO (único acento vermelho) */
+{ const s = txt(K[7], K[8]);
+  const b = bloco(s, YC, [{ seq: [66, 66, sec(48)] }, { seq: [67, 67, { font: S(150, 900), color: RED, from: '#f2b5b7', text: { 67: 'FALSO' } }] }]);
+  b[1].extra = t => `rotate(-4deg) scale(${1 + 0.25 * (1 - easeOutExpo(prog(t, ws(67), ws(67) + 0.25)))})`; }
+/* 8 — não existe alerta nacional */
+{ const s = txt(K[8], K[9]);
+  const b = bloco(s, YC, [{ seq: [69, 71, sec(44)] }, { seq: [72, 73, key(64)] }, { seq: [74, 75, key(80)] }]);
+  risco(s, b[2], we(75), { cor: RED, dy: 0.02, esp: 7 }); }
+/* 9 — prevenção / socorro pode demorar */
+{ const s = txt(K[9], K[10]);
+  const b = bloco(s, YC, [{ seq: [76, 77, sec(44)] }, { seq: [78, 78, key(92)] }, { seq: [83, 85, sec(44)] }, { seq: [86, 88, { font: S(58, 700), color: INK, from: DIM }] }]);
+  caixa(s, b[1], we(78)); }
+/* 10 — o kit: lista em caixas tracejadas */
+{ const s = txt(K[10], K[11]);
+  const itens = [['2 litros de água / dia', 93, 100], ['comida que não estraga', 101, 104], ['remédios e documentos', 105, 106], ['lanterna e rádio', 107, 109]];
+  const boxes = itens.map(([tx, a, z]) => { const d = el('div', 'abs', s.el); d.dataset.evitar = 'item';
+    d.style.cssText = `left:360px;white-space:nowrap;padding:10px 22px 10px 16px;border:2.5px dashed #9a9a9a;border-radius:12px;font:600 33px Inter;letter-spacing:-.02em;color:${INK};background:rgba(237,237,237,.85);display:flex;align-items:center;gap:14px`;
+    d.innerHTML = `<span class="ck" style="display:inline-flex;width:34px;height:34px;border-radius:50%;border:2.5px solid #141414;align-items:center;justify-content:center;font:900 22px Inter;color:#fff">✓</span>${tx}`;
+    d._a = a; d._z = z; return d; });
+  bloco(s, 690, [{ seq: [89, 92, { font: S(50, 800), color: INK, from: DIM, text: { 92: 'simples:' } }] }, { gap: 18 }, ...boxes.map(b => ({ el: b, h: 76 }))]);
+  s.updates.push(t => boxes.forEach(b => { const p = easeOutExpo(prog(t, ws(b._a) - 0.1, ws(b._a) + 0.35));
+    b.style.opacity = p > 0.01 ? 1 : 0; b.style.transform = `translate(-50%,-50%) translateX(${(1 - p) * 120}px)`;
+    const c = b.querySelector('.ck'), q = prog(t, we(b._z) - 0.1, we(b._z) + 0.1); c.style.background = q > 0.5 ? INK : 'transparent';
+    c.style.transform = `scale(${q > 0 ? backOut(q) : 1})`; })); }
+/* 11 — nada de pânico */
+{ const s = txt(K[11], K[12]);
+  bloco(s, YC, [{ seq: [110, 112, sec(46)] }, { seq: [113, 113, { font: S(112, 900), color: RED, from: '#f2b5b7' }] }, { seq: [114, 115, sec(46)] }]); }
+/* 12 — CTA: corte seco para o branco, botão com cursor clicando */
+{ const s = scene(K[12], DUR, '#ffffff', 0.006);
+  bloco(s, 560, [{ seq: [116, 119, sec(46)] }, { seq: [120, 122, key(96)] }]);
+  const bt = el('div', 'abs', s.el, 'COMENTA AQUI 👇'); bt.dataset.evitar = 'botao';
+  bt.style.cssText = `left:360px;top:760px;white-space:nowrap;padding:18px 40px;border-radius:999px;border:3px solid ${INK};font:800 34px Inter;letter-spacing:.02em;color:${INK};background:#fff;box-shadow:0 10px 0 ${INK}`;
+  const cur = el('div', 'abs', s.el, `<svg width="54" height="64" viewBox="0 0 24 28"><path d="M2 1 L2 22 L7.5 17 L11 26 L14.5 24.5 L11 15.5 L18 15.5 Z" fill="#141414" stroke="#fff" stroke-width="1.6" stroke-linejoin="round"/></svg>`);
+  s.updates.push(t => {
+    const a = ws(123), p = pop(t, a - 0.15, 0.4);
+    const click = prog(t, a + 0.55, a + 0.7) - prog(t, a + 0.75, a + 0.95);
+    bt.style.opacity = t > a - 0.15 ? 1 : 0;
+    bt.style.transform = `translate(-50%,-50%) translateY(${click * 8}px) scale(${p})`; bt.style.boxShadow = `0 ${10 - click * 8}px 0 ${INK}`;
+    bt.style.background = t > a + 0.7 ? INK : '#fff'; bt.style.color = t > a + 0.7 ? '#fff' : INK;
+    const m = easeInOut(prog(t, a, a + 0.55));
+    cur.style.left = lerp(620, 430, m) + 'px'; cur.style.top = lerp(1060, 770, m) + 'px';
+    cur.style.opacity = t > a ? 1 : 0; cur.style.transform = `scale(${1 - click * 0.15})`;
+  });
+  const ft = el('div', 'abs', s.el, 'Orientação preventiva · sem alerta nacional (Defesa Civil / MIDR)');
+  ft.style.cssText = 'left:360px;bottom:60px;transform:translateX(-50%);white-space:nowrap;font:500 17px Inter;color:#9a9a9a'; }
+
+finalize({ duration: DUR, grain: 0.05, vignette: 0.22, flashes: [[K[7], 0.12, '227,20,27'], [K[12], 0.1]],
+  preload: ['carrinho', 'latas', 'mochila', 'celular', 'lampada', 'megafone', 'lanterna'].map(n => A + n + '.png') });
+</script>
+</body></html>
