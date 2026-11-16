@@ -8,3 +8,4 @@ assets/*.wav
 assets/words.txt
 buscar_em_alta.py
 buscar_fotos.py
+__pycache__/
