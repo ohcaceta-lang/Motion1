@@ -1,0 +1,10 @@
+node_modules/
+package.json
+package-lock.json
+mudo.mp4
+mix.wav
+assets/*.mp3
+assets/*.wav
+assets/words.txt
+buscar_em_alta.py
+buscar_fotos.py

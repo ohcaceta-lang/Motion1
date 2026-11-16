@@ -1,0 +1,390 @@
+<!doctype html>
+<html><head><meta charset="utf-8"></head>
+<body>
+<script src="assets/words.js"></script>
+<script src="lib.js"></script>
+<script>
+/* Aeroportos dos EUA param — estilo "uma cena-mundo por frase" (ref. branding-why-storytelling-earnedits).
+   Objeto-herói constante: o avião recortado. Cada frase ganha um mundo próprio (HUD, celular, radar,
+   painel de partidas, foto real, jornal, holofote, lousa, visor de câmera, contador, céu, seleção de design). */
+const A = 'assets/';
+const N = window.WORDS.length - 1;
+const AMBAR = '#ffb020', VERM = '#ff3b30', VERDE = '#3dff8a';
+const T2 = ws(5) - 0.12, T3 = ws(14) - 0.12, T4 = ws(30) - 0.12, T5 = ws(38) - 0.12, T6 = ws(48) - 0.12,
+      T7 = ws(58) - 0.08, T8 = ws(65) - 0.12, T9 = ws(74) - 0.12, T10 = ws(78) - 0.12, T11 = ws(85) - 0.12,
+      T12 = ws(92) - 0.12;
+const DUR = Math.ceil((we(N) + 2.0) * 10) / 10;
+const larg = r => r.natural ? r.natural.reduce((a, b) => a + b, 0) + r.items.slice(0, -1).reduce((a, i) => a + i.gap, 0) : r.L.offsetWidth; // largura final da linha
+const rnd = k => { const x = Math.sin(k * 12.9898) * 43758.5453; return x - Math.floor(x); };
+
+/* ---------- utilidades de cena ---------- */
+function credito(s, txt) {
+  const d = el('div', 'abs', s.el, txt);
+  d.style.cssText = 'left:26px;top:1222px;font:600 15px Inter;color:rgba(255,255,255,.78);white-space:nowrap;letter-spacing:.02em;text-shadow:0 1px 4px rgba(0,0,0,.9)';
+  return d;
+}
+function whip(s, dir = 1, d = 0.24) { // entrada com whip + motion blur
+  s.updates.push(t => { const p = prog(t, s.start, s.start + d); if (p >= 1) return; const e = easeOutExpo(p);
+    s.el.style.transform += ` translateX(${(1 - e) * dir * 260}px)`; s.el.style.filter = `blur(${(1 - e) * 16}px)`; });
+}
+function hud(s, cor = 'rgba(255,255,255,.55)') { // moldura técnica: cantos, réguas e códigos laterais
+  const h = el('div', 'abs', s.el); h.style.cssText = 'inset:0;pointer-events:none';
+  const c = (css) => { const d = el('div', 'abs', h); d.style.cssText = `width:46px;height:46px;border-color:${cor};border-style:solid;${css}`; };
+  c('left:30px;top:120px;border-width:3px 0 0 3px'); c('right:30px;top:120px;border-width:3px 3px 0 0');
+  c('left:30px;bottom:110px;border-width:0 0 3px 3px'); c('right:30px;bottom:110px;border-width:0 3px 3px 0');
+  let r = ''; for (let i = 0; i < 40; i++) r += `<div style="position:absolute;left:${i * 12}px;bottom:0;width:2px;height:${i % 5 ? 8 : 16}px;background:${cor}"></div>`;
+  const ru = el('div', 'abs', h, r); ru.style.cssText = 'left:120px;top:150px;width:480px;height:16px';
+  const v = el('div', 'abs', h, 'ATC // CTRL-22 // ZTL·ZDC·ZNY // 2026-11-13');
+  v.style.cssText = `left:22px;top:640px;transform:translate(-50%,-50%) rotate(-90deg) translateY(10px);transform-origin:50% 50%;font:600 13px Inter;letter-spacing:.3em;color:${cor};white-space:nowrap;margin-left:14px`;
+  return h;
+}
+function plane(s, css) { const im = el('img', 'abs', s.el); im.src = A + 'aviao.png'; im.style.cssText = css; return im; }
+
+/* ========== 1. HUD técnico: gancho com o avião-herói ========== */
+{
+  const s = scene(0, T2, '#16181b', 0.02);
+  const g = el('div', 'abs', s.el); g.style.cssText = 'inset:-60px;background-image:linear-gradient(rgba(255,255,255,.06) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.06) 1px,transparent 1px);background-size:48px 48px';
+  shade(s, 'background:radial-gradient(ellipse at 50% 38%, rgba(70,80,92,.55), rgba(0,0,0,.75) 75%)');
+  hud(s);
+  const pl = plane(s, 'left:360px;top:400px;width:620px;filter:grayscale(1) contrast(1.1) drop-shadow(0 30px 30px rgba(0,0,0,.7))');
+  const call = el('div', 'abs', s.el, `<svg width="720" height="1280"><path id="cl" d="M470 420 L560 520 L560 560" stroke="${AMBAR}" stroke-width="3" fill="none"/><circle cx="470" cy="420" r="7" fill="${AMBAR}"/></svg>`);
+  call.style.cssText = 'left:0;top:0'; const cl = call.querySelector('#cl'); const L = 250; cl.style.strokeDasharray = L;
+  const tag = el('div', 'abs', s.el, 'GROUND STOP · EUA'); tag.style.cssText = `left:360px;top:205px;transform:translateX(-50%);white-space:nowrap;font:400 26px Anton;letter-spacing:.35em;color:${AMBAR};padding:6px 16px;border:2px solid ${AMBAR}`;
+  bloco(s, 660, [
+    { line: [[['Sexta-feira,', ws(0) - 0.04]], { font: FONTS.sans(46, 500), color: '#d6dade' }] },
+    { seq: [2, 4, { font: FONTS.caps(92), color: '#ffffff', text: { 2: '13', 3: 'DE', 4: 'NOVEMBRO' } }, { 2: { color: AMBAR, font: FONTS.caps(92) } }] },
+  ]);
+  credito(s, 'Imagens ilustrativas (IA) · Fontes: G1/AFP, CNBC');
+  s.updates.push(t => {
+    const p = easeOut(prog(t, 0, T2)), q = pop(t, 0.0, 0.5);
+    pl.style.transform = `translate(-50%,-50%) translateX(${lerp(-40, 30, p)}px) rotate(${lerp(-9, -3, p)}deg) scale(${0.6 + 0.4 * q})`;
+    cl.style.strokeDashoffset = L * (1 - easeOut(prog(t, 0.5, 1.1)));
+    tag.style.opacity = prog(t, 0.2, 0.5);
+  });
+}
+
+/* ========== 2. Tela de bloqueio + notificação (zoom para dentro) ========== */
+{
+  const s = scene(T2, T3, '#0b1020', 0.015);
+  bg(s, A + 'patio.jpg', { z0: 1.15, z1: 1.05, filter: 'blur(14px) brightness(.55) saturate(1.3)' });
+  shade(s, 'background:linear-gradient(180deg, rgba(40,20,90,.55), rgba(5,8,25,.75))');
+  const hora = el('div', 'abs', s.el, '<div style="font:500 26px Inter;color:#e8ecff;opacity:.9">sexta-feira, 13 de novembro</div><div style="font:300 150px/1 Inter;color:#ffffff;letter-spacing:-.04em;margin-top:6px">15:36</div>');
+  hora.style.cssText = 'left:360px;top:150px;transform:translateX(-50%);text-align:center;white-space:nowrap';
+  const nt = el('div', 'abs', s.el, `<div style="display:flex;align-items:center;gap:12px;font:600 19px Inter;color:#4a4f60"><img src="${tw('2708')}" style="width:34px;height:34px;background:#ffd84d;border-radius:9px;padding:5px"> ALERTA DE VOO <span style="margin-left:auto;font-weight:500">agora</span></div>
+    <div style="font:700 27px Inter;color:#111;margin-top:10px">Decolagens suspensas</div><div style="font:500 23px Inter;color:#333;margin-top:4px">em todos os aeroportos dos EUA 😳</div>`);
+  nt.style.cssText = 'left:360px;width:580px;padding:20px 24px;border-radius:28px;background:rgba(255,255,255,.88);box-shadow:0 20px 50px rgba(0,0,0,.45);white-space:nowrap';
+  nt.setAttribute('data-evitar', 'notificação');
+  bloco(s, 700, [
+    { el: nt, h: 190 },
+    { gap: 10 },
+    { seq: [5, 7, { font: FONTS.sans(46, 600), color: '#ffffff', outAt: T3 - 0.42 }] },
+    { seq: [8, 9, { font: FONTS.sans(46, 600), color: '#ffffff', outAt: T3 - 0.42, text: { 9: 'TODOS' } }, { 9: { font: FONTS.caps(88), color: '#ffd84d' } }] },
+    { seq: [10, 13, { font: FONTS.sans(46, 600), color: '#ffffff', outAt: T3 - 0.42 }] },
+  ]);
+  s.updates.push(t => {
+    const p = pop(t, T2 + 0.1, 0.45);
+    nt.style.opacity = t > T2 + 0.1 ? 1 : 0;
+    nt.style.transform = `translate(-50%,-50%) translateY(${(1 - p) * -120}px) scale(${0.85 + 0.15 * p})`;
+    const z = easeIn(prog(t, T3 - 0.42, T3));
+    if (z > 0) { s.el.style.transformOrigin = `360px ${parseFloat(nt.style.top)}px`; s.el.style.transform += ` scale(${1 + z * 5})`; s.el.style.filter = `blur(${z * 8}px)`; }
+  });
+}
+
+/* ========== 3. Radar: dados inconsistentes (glitch RGB) ========== */
+{
+  const s = scene(T3, T4, '#000', 0.02);
+  const im = bg(s, A + 'radar.jpg', { z0: 1.25, z1: 1.08, filter: 'brightness(.5) saturate(1.2)' });
+  shade(s, 'background:radial-gradient(ellipse at 50% 50%, rgba(0,20,10,.2), rgba(0,0,0,.85) 80%)');
+  hud(s, 'rgba(61,255,138,.55)');
+  const sweep = el('div', 'abs', s.el); sweep.style.cssText = 'left:360px;top:640px;width:1100px;height:1100px;border-radius:50%;background:conic-gradient(from 0deg, rgba(61,255,138,.28), rgba(61,255,138,0) 60deg, transparent 360deg);mix-blend-mode:screen';
+  const clock = el('div', 'abs', s.el); clock.style.cssText = `left:360px;top:250px;transform:translate(-50%,-50%);font:400 74px Anton;letter-spacing:.06em;color:${VERDE};text-shadow:0 0 18px rgba(61,255,138,.6);white-space:nowrap`;
+  const g = { font: FONTS.sans(46, 600), color: '#ffffff', from: '#1d3b2a' };
+  const tA = ws(25) - 0.06;
+  bloco(s, 640, [
+    { seq: [14, 17, { ...g, outAt: tA }] },
+    { seq: [18, 19, { ...g, outAt: tA }] },
+    { seq: [20, 22, { ...g, outAt: tA }] },
+    { seq: [23, 24, { ...g, text: { 23: 'CONTROLE', 24: 'AÉREO' }, font: FONTS.caps(80), color: VERDE, glow: 'rgba(61,255,138,.45)', outAt: tA }] },
+  ]);
+  const b = bloco(s, 640, [
+    { seq: [25, 27, g] },
+    { seq: [28, 28, g] },
+    { seq: [29, 29, { ...g, text: { 29: 'INCONSISTENTES' }, font: FONTS.caps(88), color: '#ffffff' }] },
+  ]);
+  const glitchLine = b[2];
+  credito(s, 'Imagem ilustrativa (IA)');
+  s.updates.push(t => {
+    sweep.style.transform = `translate(-50%,-50%) rotate(${(t - T3) * 140}deg)`;
+    const m = Math.min(36, Math.floor(lerp(30, 36, prog(t, T3, ws(19)))));
+    clock.textContent = `15:${m} EST`; clock.style.opacity = prog(t, T3, T3 + 0.3);
+    const gl = t > ws(29) ? 1 : 0;
+    if (gl) {
+      const k = Math.floor(t * 30), a = (rnd(k) - 0.5) * 18, bb = (rnd(k + 7) - 0.5) * 10;
+      glitchLine.items[0].sp.style.textShadow = `${a}px 0 0 rgba(255,0,60,.85), ${-a}px 0 0 rgba(0,220,255,.85)`;
+      im.style.filter = `brightness(${0.45 + rnd(k + 3) * 0.3}) saturate(1.4) hue-rotate(${rnd(k) > 0.8 ? 90 : 0}deg)`;
+      s.el.style.transform += ` translate(${a * 0.4}px, ${bb * 0.4}px)`;
+      clock.style.color = rnd(k + 1) > 0.5 ? VERM : VERDE; clock.textContent = rnd(k + 2) > 0.5 ? '15:36 ERR' : '##:## ???';
+    }
+  });
+}
+
+/* ========== 4. Painel de partidas (split-flap virando para SUSPENSO) ========== */
+{
+  const s = scene(T4, T5, '#000', 0.02);
+  bg(s, A + 'terminal.jpg', { z0: 1.1, z1: 1.22, filter: 'blur(6px) brightness(.38)' });
+  whip(s, 1);
+  const voos = [['AA 1204', 'NOVA YORK', '16:05'], ['DL 0388', 'ATLANTA', '16:20'], ['UA 0917', 'CHICAGO', '16:35'], ['WN 2210', 'DALLAS', '16:50'], ['B6 0481', 'MIAMI', '17:10']];
+  const bd = el('div', 'abs', s.el, `<div style="display:flex;justify-content:space-between;font:400 22px Anton;letter-spacing:.2em;color:${AMBAR};margin-bottom:12px"><span>PARTIDAS</span><span>DEPARTURES ✈</span></div>` +
+    voos.map((v, i) => `<div style="display:flex;gap:10px;margin-top:8px;font:600 22px Inter;color:#f2f2f2;letter-spacing:.04em">
+      <div style="width:118px;white-space:nowrap;background:#1c1c1c;padding:8px 8px;border-radius:5px">${v[0]}</div><div style="flex:1;background:#1c1c1c;padding:8px 10px;border-radius:5px">${v[1]}</div>
+      <div style="width:76px;background:#1c1c1c;padding:8px 8px;border-radius:5px">${v[2]}</div>
+      <div class="st" style="width:142px;white-space:nowrap;padding:8px 6px;border-radius:5px;text-align:center;font:400 22px Anton;letter-spacing:.08em"></div></div>`).join(''));
+  bd.style.cssText = 'left:360px;width:620px;padding:20px 22px 22px;background:#0b0b0b;border-radius:16px;border:2px solid #2a2a2a;box-shadow:0 30px 60px rgba(0,0,0,.7)';
+  bd.setAttribute('data-evitar', 'painel');
+  const sts = [...bd.querySelectorAll('.st')];
+  bloco(s, 640, [
+    { el: bd, h: 456 },
+    { gap: 8 },
+    { seq: [30, 31, { font: FONTS.sans(46, 600), color: '#ffffff' }] },
+    { seq: [32, 34, { font: FONTS.sans(46, 600), color: '#ffffff' }] },
+    { seq: [35, 37, { font: FONTS.sans(46, 600), color: '#ffffff', text: { 35: 'TODAS' } }, { 35: { font: FONTS.caps(84), color: VERM, glow: 'rgba(255,59,48,.45)' } }] },
+  ]);
+  credito(s, 'Imagem ilustrativa (IA)');
+  s.updates.push(t => {
+    const p = pop(t, T4 + 0.05, 0.4); bd.style.transform = `translate(-50%,-50%) scale(${0.9 + 0.1 * p}) rotateX(${(1 - p) * 30}deg)`; bd.style.opacity = t > T4 + 0.05 ? 1 : 0;
+    sts.forEach((c, i) => {
+      const tf = lerp(ws(34), ws(37) + 0.2, i / (sts.length - 1));
+      const f = prog(t, tf, tf + 0.18), novo = f >= 0.5;
+      c.textContent = novo ? 'SUSPENSO' : 'NO HORÁRIO';
+      c.style.background = novo ? '#5c0b08' : '#0f3a1f'; c.style.color = novo ? '#ff6a5f' : '#4dff95';
+      c.style.transform = `scaleY(${Math.abs(1 - 2 * f) * 0.9 + (f === 0 || f === 1 ? 0.1 : 0)})`;
+    });
+  });
+}
+
+/* ========== 5. Foto real + cronômetro: 4 horas no chão ========== */
+{
+  const s = scene(T5, T6, '#000', 0.02);
+  bg(s, A + 'foto_reagan.jpg', { z0: 1.0, z1: 1.12, px: -60, filter: 'brightness(.42) saturate(.9)' });
+  shade(s, 'background:linear-gradient(180deg, rgba(0,0,0,.2), rgba(0,0,0,.65))');
+  whip(s, -1);
+  const cnt = el('div', 'abs', s.el, `<svg width="250" height="250" style="position:absolute;left:50%;top:50%;transform:translate(-50%,-50%) rotate(-90deg)"><circle cx="125" cy="125" r="112" stroke="rgba(255,255,255,.15)" stroke-width="10" fill="none"/><circle class="rg" cx="125" cy="125" r="112" stroke="${AMBAR}" stroke-width="10" fill="none" stroke-linecap="round" stroke-dasharray="704" stroke-dashoffset="704"/></svg>
+    <div style="position:relative;text-align:center;line-height:1;display:flex;flex-direction:column;align-items:center"><span class="n" style="font:400 120px/1 Anton;color:#fff">0</span><span style="font:400 34px/1 Anton;color:${AMBAR};letter-spacing:.15em;margin-top:4px">HORAS</span></div>`);
+  cnt.style.cssText = 'left:360px;width:360px;height:250px;display:flex;align-items:center;justify-content:center;transform:translate(-50%,-50%)';
+  cnt.setAttribute('data-evitar', 'cronômetro');
+  const nn = cnt.querySelector('.n'), rg = cnt.querySelector('.rg');
+  bloco(s, 640, [
+    { seq: [38, 40, { font: FONTS.sans(46, 600), color: '#ffffff' }] },
+    { el: cnt, h: 270 },
+    { seq: [43, 45, { font: FONTS.sans(46, 600), color: '#ffffff' }] },
+    { seq: [46, 47, { font: FONTS.caps(84), color: AMBAR, text: { 46: 'NO', 47: 'CHÃO' } }] },
+  ]);
+  credito(s, 'Foto: Jonathan Ernst / Reuters · Aeroporto Reagan, 13/11');
+  s.updates.push(t => {
+    const p = easeOut(prog(t, ws(41) - 0.2, we(42) + 0.2));
+    nn.textContent = Math.round(4 * p); rg.style.strokeDashoffset = 704 * (1 - p);
+    cnt.style.opacity = t > ws(41) - 0.25 ? 1 : 0; cnt.style.transform = `translate(-50%,-50%) scale(${0.6 + 0.4 * pop(t, ws(41) - 0.25, 0.4)})`;
+  });
+}
+
+/* ========== 6. Jornal antigo: segunda vez desde o 11/9 ========== */
+{
+  const s = scene(T6, T7, '#2a2016', 0.025);
+  const pg = el('div', 'abs', s.el); pg.style.cssText = 'left:-30px;top:40px;width:780px;height:1220px;background:#ebe2cc;box-shadow:0 30px 80px rgba(0,0,0,.6)';
+  el('div', 'abs', pg, '<svg width="780" height="1220"><rect width="100%" height="100%" filter="url(#paperF)"/></svg>').style.cssText = 'inset:0;opacity:.8';
+  const mast = el('div', 'abs', pg, 'O Diário do Ar'); mast.style.cssText = 'left:390px;top:70px;transform:translateX(-50%);font:900 72px Play;font-style:italic;color:#1d1a16;white-space:nowrap';
+  el('div', 'abs', pg, 'EDIÇÃO EXTRA · SÁBADO, 14 DE NOVEMBRO DE 2026 · PREÇO: 1 CENTAVO').style.cssText = 'left:70px;right:70px;top:170px;border-top:3px solid #1d1a16;border-bottom:1px solid #1d1a16;padding:6px 0;text-align:center;font:600 15px Inter;letter-spacing:.12em;color:#1d1a16;white-space:nowrap';
+  let cols = ''; for (let c = 0; c < 3; c++) for (let r = 0; r < 16; r++) cols += `<div style="position:absolute;left:${70 + c * 220}px;top:${980 + r * 13}px;width:${190 - (r % 4 === 3 ? 60 : 0)}px;height:5px;background:rgba(29,26,22,.28)"></div>`;
+  el('div', 'abs', pg, cols).style.cssText = 'inset:0';
+  const ph = plane(s, 'left:360px;top:330px;width:470px;filter:grayscale(1) contrast(1.4) brightness(.95);mix-blend-mode:multiply');
+  const nota = el('div', 'abs', s.el, '1ª vez: janeiro de 2023, falha em sistema da FAA');
+  nota.style.cssText = 'left:360px;font:400 22px Type;color:#3a332a;white-space:nowrap;transform:translate(-50%,-50%)';
+  const ink = '#1d1a16';
+  const b = bloco(s, 700, [
+    { seq: [48, 50, { font: FONTS.dms(54, true), color: ink, from: '#cbbfa5' }] },
+    { seq: [51, 52, { font: FONTS.serif(78), color: ink, from: '#cbbfa5', text: { 51: 'SEGUNDA', 52: 'VEZ' } }] },
+    { seq: [53, 55, { font: FONTS.dms(54), color: ink, from: '#cbbfa5', text: { 55: '11' } }] },
+    { seq: [56, 57, { font: FONTS.dms(54), color: ink, from: '#cbbfa5' }] },
+    { el: nota, h: 56 },
+  ]);
+  const mk = el('div', 'abs', s.el); mk.style.cssText = 'height:60px;background:rgba(255,200,40,.75);mix-blend-mode:multiply;transform-origin:0 50%;border-radius:4px';
+  s.updates.push(t => {
+    s.el.style.transform += ` rotate(${lerp(-2.5, -0.5, easeOut(prog(t, T6, T7)))}deg)`;
+    const q = pop(t, T6 + 0.05, 0.5); ph.style.transform = `translate(-50%,-50%) scale(${0.8 + 0.2 * q}) rotate(-4deg)`;
+    const L = b[1].L, w = larg(b[1]); mk.style.left = (360 - w / 2 - 12) + 'px'; mk.style.width = (w + 24) + 'px';
+    mk.style.top = (parseFloat(L.style.top) - 22) + 'px'; mk.style.transform = `scaleX(${easeOut(prog(t, we(52), we(52) + 0.35))})`;
+    nota.style.opacity = prog(t, ws(57), ws(57) + 0.3);
+  });
+}
+
+/* ========== 7. Holofote: O culpado? (corte seco = virada) + foto real de Duffy ========== */
+{
+  const s = scene(T7, T8, 'radial-gradient(ellipse at 50% 0%, #2f6274 0%, #10303b 45%, #061418 100%)', 0.02);
+  const cone = el('div', 'abs', s.el); cone.style.cssText = 'left:360px;top:-40px;width:900px;height:1200px;transform:translateX(-50%);background:linear-gradient(180deg, rgba(255,255,255,.22), rgba(255,255,255,0) 80%);clip-path:polygon(45% 0, 55% 0, 100% 100%, 0 100%)';
+  const lamp = el('div', 'abs', s.el); lamp.style.cssText = 'left:310px;top:0;width:100px;height:26px;border-radius:0 0 50px 50px;background:#ddd;box-shadow:0 0 60px 20px rgba(255,255,255,.5)';
+  const tB = ws(60) - 0.06;
+  bloco(s, 640, [{ seq: [58, 59, { font: FONTS.caps(124), color: '#f3f6f7', outAt: tB, text: { 58: 'O', 59: 'CULPADO?' } }] }]);
+  const ft = el('div', 'abs', s.el, `<img src="${A}duffy_crop.jpg" style="width:262px;height:300px;object-fit:cover;object-position:50% 12%;display:block">
+    <div style="font:700 22px Inter;color:#111;margin-top:10px;text-align:center">Sean Duffy</div><div style="font:500 17px Inter;color:#555;text-align:center">secretário de Transportes</div>`);
+  ft.style.cssText = 'left:360px;width:290px;padding:14px 14px 14px;background:#fff;box-shadow:0 25px 50px rgba(0,0,0,.6)';
+  ft.setAttribute('data-evitar', 'foto Duffy');
+  bloco(s, 640, [
+    { el: ft, h: 410 },
+    { gap: 12 },
+    { seq: [60, 62, { font: FONTS.sans(46, 600), color: '#ffffff' }] },
+    { seq: [63, 64, { font: FONTS.sans(46, 600), color: '#ffffff', text: { 64: 'ROTEADOR' } }, { 64: { font: FONTS.caps(88), color: AMBAR, glow: 'rgba(255,176,32,.4)' } }] },
+  ]);
+  const cr = credito(s, 'Foto: Elizabeth Frantz / Reuters');
+  s.updates.push(t => {
+    const p = pop(t, tB + 0.05, 0.45), on = t > tB + 0.05;
+    ft.style.opacity = on ? 1 : 0; cr.style.opacity = on ? 1 : 0;
+    ft.style.transform = `translate(-50%,-50%) translateY(${(1 - p) * 80}px) rotate(${lerp(8, -3, p)}deg)`;
+    cone.style.opacity = 0.75 + 0.25 * Math.sin(t * 9);
+  });
+}
+
+/* ========== 8. Lousa a giz: o roteador sobrecarregou a rede ========== */
+{
+  const s = scene(T8, T9, '#3b2a1c', 0.02);
+  const wood = el('div', 'abs', s.el); wood.style.cssText = 'inset:0;background:repeating-linear-gradient(90deg,#3b2a1c 0 60px,#33241a 60px 64px,#41301f 64px 130px)';
+  const lb = el('div', 'abs', s.el); lb.style.cssText = 'left:24px;top:150px;width:672px;height:980px;background:radial-gradient(ellipse at 40% 35%, #2f5a43, #1d3a2a 80%);border:16px solid #6b4a2b;border-radius:8px;box-shadow:inset 0 0 80px rgba(0,0,0,.5), 0 30px 60px rgba(0,0,0,.6)';
+  const nodes = [[120, 70], [600, 70], [70, 200], [650, 200], [150, 300], [570, 300]];
+  const dg = el('div', 'abs', s.el, `<svg width="720" height="330" style="filter:url(#rough)">
+     ${nodes.map((n, i) => `<path class="ln" d="M360 165 L${n[0]} ${n[1]}" stroke="#f1efe6" stroke-width="4" fill="none" stroke-dasharray="320" stroke-dashoffset="320"/>`).join('')}
+     ${nodes.map((n, i) => `<circle class="nd" cx="${n[0]}" cy="${n[1]}" r="20" stroke="#f1efe6" stroke-width="4" fill="none" opacity="0"/>`).join('')}
+     <rect x="290" y="135" width="140" height="60" rx="10" stroke="#f1efe6" stroke-width="5" fill="none"/>
+     <text x="360" y="174" text-anchor="middle" font-family="Hand" font-size="30" fill="#f1efe6">roteador</text>
+     ${nodes.map((n, i) => `<circle class="pk" r="9" fill="#ff7a6b" opacity="0"/>`).join('')}
+     ${nodes.map((n, i) => `<text class="xx" x="${n[0]}" y="${n[1] + 12}" text-anchor="middle" font-family="Hand" font-size="40" fill="#ff7a6b" opacity="0">✕</text>`).join('')}</svg>`);
+  dg.style.cssText = 'left:0;width:720px;height:330px;transform:translateY(-50%)';
+  dg.setAttribute('data-evitar', 'diagrama');
+  const lns = [...dg.querySelectorAll('.ln')], nds = [...dg.querySelectorAll('.nd')], pks = [...dg.querySelectorAll('.pk')], xs = [...dg.querySelectorAll('.xx')];
+  const giz = { font: FONTS.hand(60), color: '#f1efe6', from: '#2f5a43' };
+  bloco(s, 650, [
+    { el: dg, h: 330 },
+    { seq: [65, 67, giz] },
+    { seq: [68, 70, giz] },
+    { seq: [71, 71, { ...giz, font: FONTS.hand(92), color: '#ffe066' }] },
+    { seq: [72, 73, giz] },
+  ]);
+  s.updates.push(t => {
+    lns.forEach((l, i) => { l.style.strokeDashoffset = 320 * (1 - easeOut(prog(t, ws(65) + i * 0.12, ws(67) + i * 0.12))); });
+    nds.forEach((n, i) => n.setAttribute('opacity', prog(t, ws(66) + i * 0.12, ws(66) + i * 0.12 + 0.2)));
+    const f = t > ws(71) - 0.1;
+    pks.forEach((c, i) => { const n = nodes[i % 6]; const u = ((t - ws(71)) * 2.6 + i * 0.37) % 1;
+      c.setAttribute('cx', lerp(360, n[0], u)); c.setAttribute('cy', lerp(165, n[1], u)); c.setAttribute('opacity', f ? 1 : 0); });
+    xs.forEach((x, i) => x.setAttribute('opacity', t > ws(73) + i * 0.05 ? 1 : 0));
+    if (f && t < ws(73) + 0.4) { const k = Math.floor(t * 30); dg.style.transform = `translateY(-50%) translate(${(rnd(k) - .5) * 6}px,${(rnd(k + 1) - .5) * 6}px)`; }
+  });
+}
+
+/* ========== 9. Visor de câmera REC: ataque hacker descartado ========== */
+{
+  const s = scene(T9, T10, '#000', 0.03);
+  bg(s, A + 'roteador.jpg', { z0: 1.05, z1: 1.2, filter: 'brightness(.4) grayscale(.6)' });
+  whip(s, 1);
+  const vf = el('div', 'abs', s.el, `
+    <div style="position:absolute;left:40px;top:120px;right:40px;bottom:110px;border:2px solid rgba(255,255,255,.55)"></div>
+    <div style="position:absolute;left:250px;top:300px;width:220px;height:220px;background-image:linear-gradient(rgba(255,255,255,.4) 2px,transparent 2px),linear-gradient(90deg,rgba(255,255,255,.4) 2px,transparent 2px);background-size:73.3px 73.3px;border:2px solid rgba(255,255,255,.4)"></div>
+    <div class="rec" style="position:absolute;right:70px;top:150px;font:700 26px Inter;color:#fff;display:flex;align-items:center;gap:10px"><span style="width:18px;height:18px;border-radius:50%;background:#ff2d2d"></span>REC</div>
+    <div class="tc" style="position:absolute;left:70px;top:152px;font:600 22px Inter;color:#fff;letter-spacing:.06em"></div>
+    <div style="position:absolute;left:70px;bottom:140px;width:46px;height:22px;border:2px solid #fff;border-radius:4px"><div style="width:70%;height:100%;background:#fff"></div></div>
+    <div style="position:absolute;right:70px;bottom:140px;font:600 18px Inter;color:#fff;letter-spacing:.1em">4K · 30FPS</div>`);
+  vf.style.cssText = 'inset:0';
+  const rec = vf.querySelector('.rec span'), tc = vf.querySelector('.tc');
+  const b = bloco(s, 700, [
+    { seq: [74, 75, { font: FONTS.caps(84), color: '#ffffff', text: { 74: 'ATAQUE', 75: 'HACKER' } }] },
+    { seq: [76, 77, { font: FONTS.sans(50, 600), color: '#ffffff' }, { 77: { font: FONTS.dms(70, true), color: VERDE, glow: 'rgba(61,255,138,.4)' } }] },
+  ]);
+  const risk = el('div', 'abs', s.el); risk.style.cssText = `height:9px;background:${VERM};transform-origin:0 50%;box-shadow:0 0 14px rgba(255,59,48,.7)`;
+  credito(s, 'Imagem ilustrativa (IA)');
+  s.updates.push(t => {
+    rec.style.opacity = Math.floor(t * 2.5) % 2 ? 0.2 : 1;
+    const sec = (t - T9 + 13); tc.textContent = `00:00:${String(Math.floor(sec)).padStart(2, '0')}:${String(Math.floor((sec % 1) * 30)).padStart(2, '0')}`;
+    const L = b[0].L, w = larg(b[0]); risk.style.left = (360 - w / 2 - 14) + 'px'; risk.style.width = (w + 28) + 'px';
+    risk.style.top = (parseFloat(L.style.top) - 4) + 'px';
+    risk.style.transform = `rotate(-4deg) scaleX(${easeOut(prog(t, ws(77), ws(77) + 0.3))})`;
+  });
+}
+
+/* ========== 10. Foto real do painel + contador giratório: 19 mil cancelados ========== */
+{
+  const s = scene(T10, T11, '#000', 0.02);
+  bg(s, A + 'foto_painel.jpg', { z0: 1.25, z1: 1.05, px: 40, filter: 'brightness(.35) saturate(1.1)' });
+  shade(s, 'background:linear-gradient(180deg, rgba(90,0,0,.35), rgba(0,0,0,.6))');
+  const dig = (d) => `<div style="display:inline-block;height:1em;overflow:hidden;vertical-align:top"><div class="col" data-d="${d}">${[...Array(20).keys()].map(k => `<div style="height:1em">${k % 10}</div>`).join('')}</div></div>`;
+  const ct = el('div', 'abs', s.el, `<span style="font:400 190px/1 Anton;color:#fff;display:inline-flex">${dig(1)}${dig(9)}</span><span class="mil" style="font:400 120px/1 Anton;color:${VERM};margin-left:18px;display:inline-block">MIL</span>`);
+  ct.style.cssText = 'left:360px;white-space:nowrap;display:flex;align-items:flex-end;text-shadow:0 10px 30px rgba(0,0,0,.6)';
+  ct.setAttribute('data-evitar', 'contador');
+  const cols = [...ct.querySelectorAll('.col')], mil = ct.querySelector('.mil');
+  bloco(s, 640, [
+    { seq: [78, 78, { font: FONTS.sans(46, 600), color: '#ffffff' }] },
+    { seq: [79, 80, { font: FONTS.sans(46, 600), color: '#ffffff' }] },
+    { el: ct, h: 210 },
+    { seq: [83, 84, { font: FONTS.sans(46, 600), color: '#ffffff', text: { 84: 'CANCELADOS' } }, { 84: { font: FONTS.caps(84), color: VERM, glow: 'rgba(255,59,48,.45)' } }] },
+  ]);
+  credito(s, 'Foto: Brian Snyder / Reuters · Aeroporto Logan, Boston');
+  s.updates.push(t => {
+    const p = easeOutExpo(prog(t, ws(81) - 0.1, we(82) + 0.25));
+    cols.forEach((c, i) => { const d = +c.dataset.d, v = (d + 10) * p; c.style.transform = `translateY(${-v}em)`; });
+    ct.style.opacity = t > ws(81) - 0.12 ? 1 : 0; ct.style.transform = 'translate(-50%,-50%)';
+    const m = pop(t, ws(82), 0.35); mil.style.transform = `scale(${m})`;
+  });
+}
+
+/* ========== 11. Céu dourado: voltando ao normal (avião decola pela tela) ========== */
+{
+  const s = scene(T11, T12, '#000', 0.015);
+  bg(s, A + 'decolagem.jpg', { z0: 1.0, z1: 1.12, py: -30, filter: 'brightness(.62) saturate(1.15)' });
+  shade(s, 'background:linear-gradient(180deg, rgba(10,20,40,.35), rgba(0,0,0,.2) 40%, rgba(0,0,0,.55))');
+  whip(s, -1);
+  const pl = plane(s, 'left:0;top:0;width:420px;filter:drop-shadow(0 18px 18px rgba(0,0,0,.45))');
+  const ic = el('img', 'abs', s.el); ic.src = tw('2601'); ic.style.cssText = 'width:84px;height:84px';
+  const b = bloco(s, 660, [
+    { seq: [85, 87, { font: FONTS.sans(46, 600), color: '#ffffff' }] },
+    { seq: [88, 89, { font: FONTS.sans(46, 600), color: '#ffffff' }] },
+    { seq: [90, 91, { font: FONTS.hand(96), color: '#ffffff', glow: 'rgba(255,200,90,.6)' }] },
+  ]);
+  credito(s, 'Imagem ilustrativa (IA)');
+  s.updates.push(t => {
+    const p = easeInOut(prog(t, T11, T12 + 0.2));
+    pl.style.transform = `translate(${lerp(-460, 760, p)}px, ${lerp(420, 120, p)}px) rotate(-12deg)`;
+    const L = b[2].L; ic.style.left = (360 + larg(b[2]) / 2 + 6) + 'px'; ic.style.top = (parseFloat(L.style.top) - 100) + 'px';
+    const q = pop(t, we(91) - 0.1, 0.4); ic.style.transform = `scale(${q}) rotate(${lerp(-20, 0, q)}deg)`;
+  });
+}
+
+/* ========== 12. CTA claro: seleção de design em volta da pergunta + enquete ========== */
+{
+  const s = scene(T12, DUR, 'linear-gradient(180deg, #f4f8ff, #dfe9fb)', 0.012);
+  const pl = plane(s, 'left:360px;top:300px;width:430px;filter:drop-shadow(0 25px 25px rgba(30,60,120,.25))');
+  const tint = '#12223a';
+  const poll = el('div', 'abs', s.el, `<div style="display:flex;gap:18px">
+     <div class="op" style="flex:1;padding:16px 0;border-radius:18px;background:#ffffff;box-shadow:0 10px 24px rgba(20,50,110,.15);font:700 30px Inter;color:${tint};text-align:center">👍 SIM</div>
+     <div class="op" style="flex:1;padding:16px 0;border-radius:18px;background:#ffffff;box-shadow:0 10px 24px rgba(20,50,110,.15);font:700 30px Inter;color:${tint};text-align:center">👎 NÃO</div></div>
+     <div style="font:600 21px Inter;color:#4a5a78;text-align:center;margin-top:14px">responda nos comentários 👇</div>`);
+  poll.style.cssText = 'left:360px;width:500px';
+  poll.setAttribute('data-evitar', 'enquete');
+  const b = bloco(s, 700, [
+    { seq: [92, 93, { font: FONTS.dms(64, true), color: tint, from: '#c9d6ee' }] },
+    { seq: [94, 96, { font: FONTS.sans(46, 600), color: tint, from: '#c9d6ee' }] },
+    { seq: [97, 98, { font: FONTS.caps(96), color: '#e3141b', from: '#f3c6c6', text: { 97: 'TÃO', 98: 'VELHO?' } }] },
+    { gap: 16 },
+    { el: poll, h: 140 },
+  ]);
+  const sel = el('div', 'abs', s.el, ['0,0', '100%,0', '0,100%', '100%,100%'].map(c => { const [x, y] = c.split(','); return `<div style="position:absolute;left:${x};top:${y};width:14px;height:14px;margin:-7px 0 0 -7px;background:#fff;border:3px solid #2f6bff"></div>`; }).join(''));
+  sel.style.cssText = 'border:3px solid #2f6bff;background:rgba(47,107,255,.10)';
+  credito(s, 'Fontes: G1/AFP, CNBC, CNN Brasil · Imagens ilustrativas (IA)').style.color = 'rgba(18,34,58,.6)';
+  s.updates.push(t => {
+    pl.style.transform = `translate(-50%,-50%) translateY(${Math.sin(t * 2) * 8}px) rotate(${-6 + Math.sin(t * 1.3) * 2}deg) scale(${0.7 + 0.3 * pop(t, T12, 0.5)})`;
+    const L = b[2].L, w = larg(b[2]), h = 110, q = easeOutExpo(prog(t, we(98), we(98) + 0.3));
+    sel.style.left = (360 - w / 2 - 18) + 'px'; sel.style.top = (parseFloat(L.style.top) - h / 2) + 'px';
+    sel.style.width = (w + 36) * q + 'px'; sel.style.height = h + 'px'; sel.style.opacity = q > 0 ? 1 : 0;
+    const p = pop(t, we(98) + 0.25, 0.45); poll.style.opacity = t > we(98) + 0.25 ? 1 : 0;
+    poll.style.transform = `translate(-50%,-50%) scale(${0.8 + 0.2 * p})`;
+  });
+}
+
+finalize({ duration: DUR, grain: 0.07, vignette: 0.38, flashes: [[T4, 0.12], [T5, 0.12], [T6, 0.14], [T8, 0.12], [T10, 0.18, '227,20,27'], [T11, 0.15], [T12, 0.2]] });
+</script>
+</body></html>

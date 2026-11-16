@@ -55,7 +55,8 @@ scripts de render e `descricao_tiktok.txt`. Commit e push na branch indicada pel
 | 14/11/2026 | `videos/alan-ruschel-despedida` (V1) | Cinemático próprio (preto, verde, ouro) | polaroid caindo, rota do voo tracejada, contadores, carimbo, comentário digitando |
 | 14/11/2026 | `videos/alan-ruschel-despedida` (V2) | `insta-trend-documentary-motion` | abertura clara → azul-marinho, cursor + caixa tracejada, cards 3D, pílulas com slide, infográfico de pontos, corte seco com grão, microtipografia de revista |
 | 14/11/2026 | `videos/alan-ruschel-despedida` (V3) | `motion-design-earnedits` | vinho + vinheta, palavras gigantes cortadas, eco de texto, stickers P&B caindo, 16 fps, rodapé de post |
+| 16/11/2026 | `videos/aeroportos-eua-pane` | `branding-why-storytelling-earnedits` | uma cena-mundo por frase com avião recortado como objeto-herói; moldura HUD com callout; tela de bloqueio com notificação e zoom para dentro; radar com glitch RGB; painel de partidas split-flap; cronômetro em anel; jornal com marca-texto; holofote com corte seco; lousa a giz com diagrama se desenhando; visor de câmera REC com risco; contador giratório (odômetro); caixa de seleção de design no CTA |
 
-Referências ainda **não usadas**: `branding-why-storytelling-earnedits`, `agencia-marketing-exar`,
+Referências ainda **não usadas**: `agencia-marketing-exar`,
 `vender-sem-palavras-insiderforce`, `marca-forte-cynosure`, `corretora-confiavel-pfh`,
 `posicionamento-al-ries-rivinity`, `mcdonalds-imoveis-earnedits`.
