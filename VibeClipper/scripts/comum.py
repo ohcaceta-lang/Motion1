@@ -43,3 +43,17 @@ def preparar():
             pass
     if achar_ffmpeg() is None:
         raise SystemExit("[VibeClipper] não achei o ffmpeg. Rode `python instalar.py` pra ver como instalar.")
+
+
+_NVENC = None
+
+
+def nvenc_funciona():
+    """True só se o h264_nvenc do ffmpeg realmente abre (o ffmpeg pode listar o encoder sem ter placa NVIDIA)."""
+    global _NVENC
+    if _NVENC is None:
+        import subprocess
+        r = subprocess.run(["ffmpeg", "-hide_banner", "-v", "error", "-f", "lavfi", "-i", "color=black:s=256x256:d=0.1",
+                            "-c:v", "h264_nvenc", "-f", "null", "-"], capture_output=True)
+        _NVENC = r.returncode == 0
+    return _NVENC

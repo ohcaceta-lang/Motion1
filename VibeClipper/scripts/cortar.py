@@ -47,8 +47,8 @@ def alinhar(trecho, audio_inteiro, aprox, busca=45.0, janela=20.0):
 
 def enc_video(alta=True):
     """h264 na placa NVIDIA se tiver (rápido); senão libx264."""
-    r = subprocess.run(["ffmpeg", "-hide_banner", "-encoders"], capture_output=True, text=True).stdout
-    if "h264_nvenc" in r:
+    from comum import nvenc_funciona
+    if nvenc_funciona():
         return ["-c:v", "h264_nvenc", "-preset", "p5", "-rc", "vbr", "-cq", "16" if alta else "19", "-b:v", "0"]
     return ["-c:v", "libx264", "-preset", "medium", "-crf", "14" if alta else "18"]
 
