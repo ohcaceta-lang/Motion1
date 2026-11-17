@@ -1,0 +1,398 @@
+<!doctype html>
+<html><head><meta charset="utf-8"></head>
+<body>
+<script src="assets/words.js"></script>
+<script src="lib.js"></script>
+<script>
+/* Apagão mundial (17/11/2026) — estilo "vender-sem-palavras-insiderforce":
+   cinza monocromático com grade, canvas infinito com câmera contínua, caixas e conectores tracejados,
+   objetos P&B "de catálogo"; um único acento vermelho para BOATO/PÂNICO. */
+const A = 'assets/';
+const N = window.WORDS.length - 1;
+const INK = '#151515', MID = '#8a8a8a', RED = '#d7261e', PAPER = '#ececec';
+const GRID = `background-color:${PAPER};background-image:linear-gradient(rgba(0,0,0,.055) 1px,transparent 1px),linear-gradient(90deg,rgba(0,0,0,.055) 1px,transparent 1px);background-size:48px 48px`;
+
+/* fontes: uma única sans, contraste por peso e tamanho */
+const S = (px) => ({ font: FONTS.sans(px, 500), color: '#5d5d5d', from: '#cfcfcf' });
+const B = (px, cor) => ({ font: FONTS.sans(px, 800), color: cor || INK, from: '#bdbdbd' });
+
+/* cortes (ancorados na narração) */
+const C1 = 0, C2 = ws(15) - 0.12, C3 = ws(39) - 0.12, C4 = ws(158) - 0.1, C5 = ws(178) - 0.12, C6 = ws(191) - 0.12;
+const DUR = Math.ceil((we(N) + 2.0) * 10) / 10;
+
+/* ---------- utilidades visuais ---------- */
+function grade(s) { const g = el('div', 'abs', s.el); g.style.cssText = 'inset:0;' + GRID; return g; }
+function rodape(s) {
+  const r = el('div', 'abs', s.el, 'ENTENDA O BOATO &nbsp;·&nbsp; 17.11.2026');
+  r.style.cssText = `left:360px;top:1236px;transform:translate(-50%,-50%);white-space:nowrap;font:600 13px Inter;letter-spacing:.32em;color:#a9a9a9`;
+}
+/* objeto P&B "de catálogo": multiply + máscara radial (o fundo claro some no papel) */
+function obj(par, src, cx, cy, w, o = {}) {
+  const im = el('img', 'abs', par); im.src = src;
+  const h = w * 1344 / 768;
+  im.style.cssText = `left:${cx - w / 2}px;top:${cy - h / 2}px;width:${w}px;height:${h}px;object-fit:cover;mix-blend-mode:multiply;
+    filter:grayscale(1) contrast(${o.c || 1.15}) brightness(${o.b || 1.1});
+    -webkit-mask-image:radial-gradient(ellipse ${o.mx || 46}% ${o.my || 44}% at 50% 50%, #000 62%, transparent 100%)`;
+  return im;
+}
+/* caixa tracejada (rótulo) em volta de uma linha, desenhando-se da esquerda para a direita */
+function rotulo(par, rec, t0, o = {}) {
+  const b = el('div', 'abs', par);
+  b.style.cssText = `border:2.5px dashed ${o.cor || '#7a7a7a'};border-radius:10px;pointer-events:none`;
+  return { b, at: t => {
+    updateLine(rec, t);
+    const w = rec.L.offsetWidth, h = rec.L.offsetHeight, p = easeOut(prog(t, t0, t0 + 0.5));
+    b.style.left = (parseFloat(rec.L.style.left) - w / 2 - 22) + 'px'; b.style.top = (parseFloat(rec.L.style.top) - h / 2 - 6) + 'px';
+    b.style.width = (w + 44) + 'px'; b.style.height = (h + 12) + 'px';
+    b.style.clipPath = `inset(0 ${100 - p * 100}% 0 0)`; b.style.opacity = t < t0 || (o.out && t > o.out) ? 0 : 1;
+  } };
+}
+/* pílula tracejada com texto digitado */
+function pilula(par, x, y, txt, t0, o = {}) {
+  const p = el('div', 'abs', par);
+  p.style.cssText = `left:${x}px;top:${y}px;white-space:nowrap;padding:8px 18px;border:2px dashed #9a9a9a;border-radius:40px;
+    font:${o.peso || 600} ${o.px || 20}px Inter;letter-spacing:.02em;color:${o.cor || '#444'};background:rgba(255,255,255,.55)`;
+  const ty = typer(p, 'position:static;display:inline', txt, t0, o.cps || 34);
+  ty.d.style.position = 'static';
+  return { p, at: t => { ty.at(t); const q = pop(t, t0 - 0.05, 0.3); p.style.opacity = t < t0 - 0.05 ? 0 : 1; p.style.transform = `translate(-50%,-50%) scale(${0.85 + 0.15 * q})`; } };
+}
+/* número em círculo tracejado */
+function numero(par, x, y, n) {
+  const d = el('div', 'abs', par, n);
+  d.style.cssText = `left:${x}px;top:${y}px;width:92px;height:92px;border:2.5px dashed #777;border-radius:50%;transform:translate(-50%,-50%);
+    font:800 44px/88px Inter;text-align:center;color:${INK}`;
+  return d;
+}
+/* traço desenhado (SVG) */
+function traco(par, d, t0, dur, o = {}) {
+  const sv = el('div', 'abs', par, `<svg width="720" height="1280" style="overflow:visible"><path d="${d}" fill="none" stroke="${o.cor || RED}" stroke-width="${o.w || 9}" stroke-linecap="round" ${o.dash ? `stroke-dasharray="${o.dash}"` : ''}/></svg>`);
+  sv.style.cssText = 'left:0;top:0;pointer-events:none';
+  const path = sv.querySelector('path'); const L = path.getTotalLength ? 2000 : 2000;
+  if (!o.dash) { path.style.strokeDasharray = L; }
+  return { sv, at: t => { const p = easeOut(prog(t, t0, t0 + dur));
+    if (o.dash) sv.style.clipPath = `inset(0 ${100 - p * 100}% 0 0)`; else path.style.strokeDashoffset = L * (1 - p);
+    sv.style.opacity = t < t0 ? 0 : 1; } };
+}
+/* carimbo */
+function carimbo(par, x, y, txt, t0, rot = -9) {
+  const c = el('div', 'abs', par, txt);
+  c.style.cssText = `left:${x}px;top:${y}px;white-space:nowrap;font:900 62px Inter;letter-spacing:.06em;color:${RED};border:7px solid ${RED};border-radius:10px;padding:0 22px;filter:url(#rough);opacity:0`;
+  return { c, at: t => { const q = prog(t, t0, t0 + 0.18); c.style.opacity = q > 0 ? 0.92 : 0;
+    c.style.transform = `translate(-50%,-50%) rotate(${rot}deg) scale(${q > 0 ? lerp(2.3, 1, easeOutExpo(q)) : 0})`; } };
+}
+/* cursor de mouse */
+function cursor(par) {
+  const c = el('div', 'abs', par, `<svg width="44" height="44" viewBox="0 0 24 24"><path d="M3 2l7 19 2.6-7.6L20 11z" fill="#111" stroke="#fff" stroke-width="1.4" stroke-linejoin="round"/></svg>`);
+  c.style.cssText = 'left:0;top:0;filter:drop-shadow(0 6px 8px rgba(0,0,0,.35));z-index:5'; return c;
+}
+
+/* =============== CENA 1 — gancho: a luz apaga =============== */
+{
+  const s = scene(C1, C2, PAPER, 0.008); grade(s);
+  const halo = el('div', 'abs', s.el); halo.style.cssText = 'left:60px;top:-10px;width:600px;height:600px;border-radius:50%;background:radial-gradient(circle,rgba(255,236,170,.75),rgba(255,236,170,0) 65%);opacity:0';
+  const lamp = obj(s.el, A + 'lampada.jpg', 360, 300, 300, { mx: 40, my: 46 });
+  const r1 = bloco(s, 770, [
+    { seq: [0, 2, S(54)] },
+    { seq: [3, 3, B(124)] },
+    { seq: [4, 4, { ...S(54), outAt: ws(5) - 0.06 }] },
+  ]);
+  r1[0].outAt = r1[1].outAt = ws(5) - 0.06;
+  const r2 = bloco(s, 760, [
+    { seq: [5, 5, B(100)] },
+    { seq: [6, 9, S(46)] },
+    { seq: [10, 13, S(46)] },
+    { seq: [14, 14, B(104, RED)] },
+  ]);
+  const rot = rotulo(s.el, r2[3], ws(14) + 0.1, { cor: RED });
+  // fios tracejados saindo da lâmpada
+  const fio = traco(s.el, 'M360 560 L360 600', 0, 0.1, { cor: '#999', w: 2, dash: '6 8' });
+  s.updates.push(t => {
+    rot.at(t); fio.at(t);
+    // pisca-pisca e apagão: inversão total da cena (o "corte seco" da virada)
+    const a = ws(2), off = [[a, a + .07], [a + .14, a + .2], [a + .3, a + .34], [ws(3), ws(5) - 0.05]];
+    const escuro = off.some(([x, y]) => t >= x && t < y);
+    s.el.style.filter = escuro ? 'invert(1) contrast(1.1)' : '';
+    // luz volta no "Calma"
+    const on = prog(t, ws(5), ws(5) + 0.5);
+    halo.style.opacity = on * 0.9 * (0.92 + 0.08 * Math.sin(t * 9));
+    lamp.style.filter = `grayscale(${1 - on * 0.6}) contrast(1.15) brightness(${1.1 + on * 0.12})`;
+    lamp.style.transform = `translateY(${Math.sin(t * 1.6) * 6}px) rotate(${Math.sin(t * 1.1) * 2}deg)`;
+  });
+  rodape(s);
+}
+
+/* =============== CENA 2 — o boato nas redes =============== */
+{
+  const s = scene(C2, C3, PAPER, 0.01); grade(s);
+  // celular (mockup) com o post viral
+  const ph = el('div', 'abs', s.el, `
+    <div style="position:absolute;inset:12px;border-radius:34px;background:#f7f7f7;overflow:hidden">
+      <div style="display:flex;align-items:center;gap:10px;padding:22px 18px 10px">
+        <div style="width:38px;height:38px;border-radius:50%;background:#bbb"></div>
+        <div style="font:700 17px Inter;color:#222">@alerta.urgente</div></div>
+      <div style="margin:6px 14px;height:250px;border-radius:14px;background:#161616;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px">
+        <div style="font:900 40px/1 Inter;color:#fff;letter-spacing:-.02em">APAGÃO</div>
+        <div style="font:900 40px/1 Inter;color:#fff;letter-spacing:-.02em">MUNDIAL</div>
+        <div style="font:800 26px Inter;color:${RED};margin-top:8px">17/11 · 90 DIAS</div></div>
+      <div style="display:flex;align-items:center;gap:8px;padding:14px 18px;font:700 22px Inter;color:#222">
+        <svg width="26" height="26" viewBox="0 0 24 24"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z" fill="none" stroke="#222" stroke-width="2"/><circle cx="12" cy="12" r="3.2" fill="#222"/></svg>
+        <span id="views">0</span><span style="font-weight:500;color:#777">visualizações</span></div>
+    </div>`);
+  ph.style.cssText = 'left:360px;top:300px;width:330px;height:470px;border-radius:44px;background:#1b1b1b;box-shadow:0 30px 60px rgba(0,0,0,.25)';
+  ph.dataset.evitar = 'celular';
+  const views = ph.querySelector('#views');
+  const b1 = bloco(s, 830, [
+    { seq: [15, 16, S(48)] },
+    { seq: [17, 18, S(48)] },
+    { seq: [19, 19, B(112)] },
+    { seq: [20, 21, S(48)] },
+  ]);
+  b1.forEach(r => r.outAt = ws(22) - 0.06);
+  const b2 = bloco(s, 830, [
+    { seq: [22, 25, S(48)] },
+    { seq: [26, 28, S(48)] },
+    { seq: [29, 30, B(120)] },
+    { seq: [31, 32, B(64)] },
+  ]);
+  b2[2].items[0].sp.textContent = '90'; b2[2].items[1].sp.textContent = 'dias';
+  b2.forEach(r => r.outAt = ws(33) - 0.06);
+  const b3 = bloco(s, 830, [
+    { seq: [33, 35, S(48)] },
+    { line: [[['17', ws(36) - 0.04, B(200, RED)]], {}] },
+    { seq: [37, 38, S(52)] },
+  ]);
+  const rot = rotulo(s.el, b3[1], ws(36) + 0.1, { cor: RED });
+  s.updates.push(t => {
+    const p = prog(t, ws(19), ws(21) + 0.6), v = Math.round(2900000 * easeOut(p));
+    views.textContent = v >= 1e6 ? (v / 1e6).toFixed(1).replace('.', ',') + ' mi' : v.toLocaleString('pt-BR');
+    const e = easeOutExpo(prog(t, C2, C2 + 0.6));
+    ph.style.transform = `translate(-50%,-50%) translateY(${(1 - e) * 500 + Math.sin(t * 1.3) * 6}px) rotate(${(1 - e) * 14 - 3 + Math.sin(t * .9) * 1.2}deg)`;
+    // celular treme quando aparece "90 dias sem luz"
+    if (t > ws(31) && t < ws(31) + 0.4) ph.style.transform += ` translateX(${Math.sin(t * 90) * 6}px)`;
+    rot.at(t);
+  });
+  rodape(s);
+}
+
+/* =============== CENA 3 — o mapa da teoria (canvas infinito, câmera contínua) =============== */
+const STW = 720, GAP = 110, PASSO = STW + GAP;
+const T1 = ws(57) - 0.1, T2 = ws(79) - 0.1, T3 = ws(103) - 0.1, T4 = ws(124) - 0.1, T5 = ws(140) - 0.15;
+{
+  const s = scene(C3, C4, PAPER, 0.0015);
+  const world = el('div', 'abs', s.el); world.style.cssText = 'left:0;top:0;width:3210px;height:1280px;transform-origin:0 0';
+  const wg = el('div', 'abs', world); wg.style.cssText = `left:-3000px;top:-3000px;width:9210px;height:7280px;${GRID}`;
+  const X = i => i * PASSO;                          // x da estação i no mundo
+  // cartões tracejados de cada estação + conectores com "?"
+  for (let i = 0; i < 4; i++) {
+    const c = el('div', 'abs', world); c.style.cssText = `left:${X(i) + 30}px;top:40px;width:${STW - 60}px;height:1200px;border:6px dashed #9d9d9d;border-radius:46px;background:rgba(255,255,255,.35)`;
+    numero(world, X(i) + 120, 150, '0' + (i + 1)).style.transform = 'translate(-50%,-50%) scale(1.25)';
+    if (i < 3) {
+      const k = el('div', 'abs', world, `<svg width="${GAP + 60}" height="40"><line x1="0" y1="20" x2="${GAP + 60}" y2="20" stroke="#8d8d8d" stroke-width="6" stroke-dasharray="14 12"/></svg>`);
+      k.style.cssText = `left:${X(i) + STW - 30}px;top:620px`;
+      const q = el('div', 'abs', world, '?'); q.style.cssText = `left:${X(i) + STW + GAP / 2}px;top:640px;transform:translate(-50%,-50%);width:86px;height:86px;border-radius:50%;background:${PAPER};border:5px dashed #8d8d8d;font:800 50px/76px Inter;text-align:center;color:#666`;
+    }
+  }
+  // objetos das estações
+  const tv = obj(world, A + 'tv.jpg', X(0) + 360, 400, 340, { my: 40 });
+  const bunker = obj(world, A + 'bunker.jpg', X(1) + 360, 410, 340, { my: 40 });
+  const kit = obj(world, A + 'kit.jpg', X(2) + 360, 400, 300, { mx: 44, my: 42 });
+  const cid = el('div', 'abs', world); cid.style.cssText = `left:${X(3) + 130}px;top:250px;width:460px;height:330px;border-radius:24px;background:url(${A}cidade.jpg) 50% 62%/cover;box-shadow:0 18px 40px rgba(0,0,0,.25)`;
+  const cidF = el('div', 'abs', world); cidF.style.cssText = `left:${X(3) + 116}px;top:236px;width:488px;height:358px;border-radius:30px;border:3px dashed #8a8a8a`;
+
+  // ---- texto da visão geral (fixo na tela) ----
+  const g1 = bloco(s, 880, [
+    { seq: [39, 43, S(44)] },
+    { seq: [44, 45, B(80)] },
+    { seq: [46, 49, S(44)] },
+    { seq: [50, 52, B(80)] },
+    { seq: [53, 56, S(44)] },
+  ]);
+  g1.forEach(r => r.outAt = T1 - 0.05);
+
+  // ---- estações (texto no mundo; some antes da câmera sair) ----
+  const noMundo = (recs, xi, out) => recs.forEach(r => { world.appendChild(r.L); if (out) r.outAt = out; });
+  // 01 — teste de alerta nos EUA
+  const e1a = bloco(s, 830, [{ seq: [58, 60, S(46)] }, { seq: [61, 63, S(46)] }, { seq: [64, 66, B(66)] }, { seq: [67, 71, S(46)] }], { x: X(0) + 360 });
+  noMundo(e1a, 0, ws(72) - 0.06);
+  const e1b = bloco(s, 830, [{ seq: [72, 74, S(48)] }, { seq: [75, 75, B(130)] }, { seq: [76, 78, S(48)] }], { x: X(0) + 360 });
+  noMundo(e1b, 0, T2 - 0.05);
+  const p1 = pilula(world, X(0) + 360, 640, '“Este é apenas um teste.”', ws(72), { px: 22 });
+  // 02 — os 90 dias do Pentágono
+  const e2a = bloco(s, 840, [{ seq: [80, 82, S(48), { 81: B(84) }] }, { seq: [83, 86, S(46)] }, { seq: [87, 88, B(70)] }, { seq: [89, 91, S(46)] }, { seq: [92, 93, S(46)] }], { x: X(1) + 360 });
+  e2a[0].items[1].sp.textContent = '90';
+  noMundo(e2a, 1, ws(94) - 0.06);
+  const e2b = bloco(s, 830, [{ seq: [94, 98, S(48)] }, { seq: [99, 101, S(48)] }, { seq: [102, 102, B(130)] }], { x: X(1) + 360 });
+  noMundo(e2b, 1, T3 - 0.05);
+  const p2 = pilula(world, X(1) + 360, 650, 'base militar ≠ sua casa', ws(94), { px: 22 });
+  // 03 — kit da Defesa Civil
+  const e3a = bloco(s, 840, [{ seq: [104, 106, B(64)] }, { seq: [107, 109, S(46)] }, { seq: [110, 112, S(46)] },
+    { line: [[['72', ws(113) - 0.04, B(120)], ['horas', ws(116) - 0.04, S(48)]], {}] }], { x: X(2) + 360 });
+  noMundo(e3a, 2, ws(117) - 0.06);
+  const e3b = bloco(s, 820, [{ seq: [117, 118, S(48)] }, { seq: [119, 120, B(82)] }, { seq: [121, 123, S(48)] }], { x: X(2) + 360 });
+  noMundo(e3b, 2, T4 - 0.05);
+  const p3 = pilula(world, X(2) + 360, 650, 'Defesa Civil Nacional · 8/11', ws(105), { px: 22 });
+  const sub3 = el('div', 'abs', world, `<svg width="420" height="40" style="overflow:visible"><path d="M8 14 C 120 6, 260 20, 410 8" fill="none" stroke="${INK}" stroke-width="7" stroke-linecap="round"/></svg>`);
+  const sub3p = sub3.querySelector('path'); sub3p.style.strokeDasharray = 600;
+  // 04 — Os Simpsons
+  const e4a = bloco(s, 820, [{ seq: [125, 126, B(84)] }], { x: X(3) + 360 });
+  noMundo(e4a, 3, ws(127) - 0.06);
+  const e4b = bloco(s, 840, [{ seq: [127, 129, S(46)] }, { seq: [130, 131, S(46)] }, { seq: [132, 134, B(64)] }, { seq: [135, 136, S(46)] }, { seq: [137, 139, S(46), { 138: B(46) }] }], { x: X(3) + 360 });
+  noMundo(e4b, 3, T5 - 0.05);
+  const p4 = pilula(world, X(3) + 360, 650, 'episódio de 2023 · sem data', ws(127), { px: 22 });
+
+  // ---- volta à visão geral: as panes recentes + "pânico" ----
+  const g2 = bloco(s, 890, [
+    { seq: [140, 143, S(46)] },
+    { seq: [144, 145, B(66)] },
+    { seq: [153, 154, S(46)] },
+    { seq: [155, 156, S(46)] },
+    { seq: [157, 157, B(124, RED)] },
+  ]);
+  const panes = [['Microsoft', 147, 150], ['voos', 149, 360], ['bancos', 152, 570]].map(([txt, i, x]) => ({ ...pilula(s.el, x, 625, txt, ws(i), { px: 24, peso: 700, cor: INK }), i, x }));
+  const fios = el('div', 'abs', s.el, `<svg width="720" height="1280">${panes.map(p => `<line x1="${p.x}" y1="600" x2="360" y2="${520}" stroke="#8d8d8d" stroke-width="2.5" stroke-dasharray="7 7"/>`).join('')}</svg>`);
+  fios.style.cssText = 'left:0;top:0;pointer-events:none';
+  const fl = [...fios.querySelectorAll('line')];
+
+  // câmera: (cx no mundo, y na tela, escala)
+  const K0 = 0.2, CXall = (3 * PASSO + STW) / 2;
+  const cams = [
+    [C3, CXall, 380, K0], [T1, CXall, 380, K0], [T1 + 0.9, X(0) + 360, 640, 1],
+    [T2, X(0) + 360, 640, 1], [T2 + 0.75, X(1) + 360, 640, 1],
+    [T3, X(1) + 360, 640, 1], [T3 + 0.75, X(2) + 360, 640, 1],
+    [T4, X(2) + 360, 640, 1], [T4 + 0.75, X(3) + 360, 640, 1],
+    [T5, X(3) + 360, 640, 1], [T5 + 0.9, CXall, 380, K0], [C4, CXall, 380, K0 * 1.05],
+  ];
+  const cam = t => {
+    for (let i = 0; i < cams.length - 1; i++) { const [ta, xa, ya, ka] = cams[i], [tb, xb, yb, kb] = cams[i + 1];
+      if (t >= ta && t <= tb) { const p = easeInOut(prog(t, ta, tb)), lk = Math.exp(lerp(Math.log(ka), Math.log(kb), p));
+        const dx = Math.abs(xb - xa) > 1 && ka === kb ? Math.sin(p * Math.PI) : 0;
+        return [lerp(xa, xb, p), lerp(ya, yb, p), lk, dx]; } }
+    const z = cams[cams.length - 1]; return [z[1], z[2], z[3], 0];
+  };
+  s.updates.push(t => {
+    let [cx, ys, k, blur] = cam(t);
+    // deriva lenta: a câmera nunca para
+    cx += Math.sin(t * 0.7) * 8 / k; ys += Math.cos(t * 0.5) * 6;
+    let sh = 0; if (t > ws(157) && t < ws(157) + 0.5) sh = Math.sin(t * 80) * 10 * (1 - prog(t, ws(157), ws(157) + 0.5));
+    world.style.transform = `translate(${360 - k * cx + sh}px, ${ys - k * 640}px) scale(${k})`;
+    world.style.filter = blur > 0.05 ? `blur(${blur * 7}px)` : '';
+    // "?" e estações respirando
+    p1.at(t); p2.at(t); p3.at(t); p4.at(t);
+    sub3.style.cssText = `left:${X(2) + 150}px;top:${parseFloat(e3b[1].L.style.top) + 30}px;opacity:${t > ws(120) && t < T4 ? 1 : 0}`;
+    sub3p.style.strokeDashoffset = 600 * (1 - easeOut(prog(t, we(120), we(120) + 0.45)));
+    // apagão na cidade do desenho
+    const ap = prog(t, ws(131), ws(131) + 0.35);
+    cid.style.filter = `grayscale(1) brightness(${1 - ap * 0.75}) contrast(1.2)`;
+    tv.style.transform = `translateY(${Math.sin(t * 1.4) * 5}px)`; bunker.style.transform = `translateY(${Math.sin(t * 1.2 + 1) * 5}px)`;
+    kit.style.transform = `rotate(${Math.sin(t * 1.1) * 1.5}deg)`;
+    // panes ligadas ao mapa
+    panes.forEach((p, j) => { p.at(t); const q = easeOut(prog(t, ws(p.i), ws(p.i) + 0.4));
+      fl[j].style.opacity = q; fl[j].setAttribute('stroke-dashoffset', -t * 30); });
+    fios.style.opacity = t >= T5 ? 1 : 0;
+    panes.forEach(p => { if (t < T5) p.p.style.opacity = 0; });
+    // no "pânico" tudo fica vermelho por um instante
+    const pan = prog(t, ws(157), ws(157) + 0.25);
+    fl.forEach(l => l.setAttribute('stroke', pan > 0 ? RED : '#8d8d8d'));
+  });
+  g2.forEach(r => { r.outAt = null; });
+  rodape(s);
+}
+
+/* =============== CENA 4 — a explicação: não existe rede mundial =============== */
+{
+  const s = scene(C4, C5, PAPER, 0.01); grade(s);
+  const torre = obj(s.el, A + 'torre.jpg', 360, 320, 320, { mx: 42, my: 44 });
+  const b1 = bloco(s, 800, [{ seq: [158, 161, S(48)] }, { seq: [162, 163, B(76)] }, { seq: [164, 164, B(124)] }]);
+  b1.forEach(r => r.outAt = ws(165) - 0.06);
+  const risco = el('div', 'abs', s.el); risco.style.cssText = `height:12px;border-radius:6px;background:${RED};transform-origin:0 50%`;
+  const b2 = bloco(s, 820, [
+    { seq: [165, 169, S(48), { 166: B(48) }] },
+    { seq: [170, 173, S(48)] },
+    { line: [[['têm', ws(174) - 0.04, S(56)], ['5', ws(175) - 0.04, B(170)]], {}] },
+    { seq: [176, 177, B(54)] },
+  ]);
+  // 5 redes isoladas da América do Norte (IEA): círculos tracejados que NÃO se ligam
+  const nomes = ['Western', 'Eastern', 'Texas', 'Alaska', 'Quebec'];
+  const ilhas = nomes.map((n, i) => { const d = el('div', 'abs', s.el, `<div style="width:96px;height:96px;border:3px dashed #6f6f6f;border-radius:50%;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,.5)"><img src="${tw('26a1')}" style="width:44px;filter:grayscale(1) brightness(.35)"></div><div style="font:600 15px Inter;color:#666;text-align:center;margin-top:8px;letter-spacing:.04em">${n}</div>`);
+    d.style.cssText = `left:${104 + i * 128}px;top:470px;transform:translate(-50%,-50%)`; return d; });
+  s.updates.push(t => {
+    // risco vermelho em "MUNDIAL"
+    const r = b1[2], w = r.L.offsetWidth, p = easeOut(prog(t, we(164) - 0.05, we(164) + 0.3));
+    risco.style.left = (360 - w / 2 - 14) + 'px'; risco.style.top = (parseFloat(r.L.style.top) - 4) + 'px';
+    risco.style.width = (w + 28) + 'px'; risco.style.transform = `rotate(-4deg) scaleX(${p})`; risco.style.opacity = t < ws(165) - 0.06 && p > 0 ? 1 : 0;
+    // torre sobe e dá lugar às ilhas
+    const sai = easeInOut(prog(t, ws(165) - 0.2, ws(165) + 0.4));
+    torre.style.transform = `translateY(${-sai * 120 + Math.sin(t) * 5}px) scale(${1 - sai * 0.25})`; torre.style.opacity = 1 - sai;
+    ilhas.forEach((d, i) => { const q = pop(t, ws(175) + i * 0.12, 0.4); d.style.opacity = t > ws(175) + i * 0.12 ? 1 : 0;
+      d.style.transform = `translate(-50%,-50%) scale(${q}) translateY(${Math.sin(t * 2 + i) * 4}px)`; });
+    const s0 = pop(t, ws(165), 0.45);
+    if (t > ws(165) && t < ws(175)) { ilhas.forEach(d => d.style.opacity = 0); }
+  });
+  rodape(s);
+}
+
+/* =============== CENA 5 — o especialista =============== */
+{
+  const s = scene(C5, C6, PAPER, 0.01); grade(s);
+  const card = el('div', 'abs', s.el, `<div style="position:absolute;inset:14px;border-radius:16px;background:url(${A}foto_sauer2.jpg) 49% 16%/300% auto;filter:grayscale(1) contrast(1.08)"></div>`);
+  card.style.cssText = 'left:360px;top:300px;width:420px;height:330px;border-radius:24px;background:#fff;box-shadow:0 24px 50px rgba(0,0,0,.22)';
+  card.dataset.evitar = 'foto';
+  const moldura = el('div', 'abs', s.el); moldura.style.cssText = 'left:360px;top:300px;width:452px;height:362px;border-radius:30px;border:3px dashed #8a8a8a';
+  const nome = el('div', 'abs', s.el, '<b style="color:#151515">Ildo Sauer</b> &nbsp;·&nbsp; professor da USP');
+  nome.style.cssText = 'left:360px;top:512px;white-space:nowrap;font:500 22px Inter;color:#666';
+  const cred = el('div', 'abs', s.el, 'Foto: CPFL Cultura / Wikimedia Commons (CC BY 2.0)');
+  cred.style.cssText = 'left:360px;top:1206px;transform:translate(-50%,-50%);white-space:nowrap;font:500 14px Inter;color:#8a8a8a';
+  const b1 = bloco(s, 800, [{ seq: [178, 179, B(66)] }, { seq: [180, 183, S(48)] }, { seq: [184, 184, S(54)] }, { seq: [185, 185, B(86, RED)] }]);
+  b1.forEach(r => r.outAt = ws(186) - 0.06);
+  const b2 = bloco(s, 790, [{ seq: [186, 188, S(48)] }, { seq: [189, 190, B(96)] }]);
+  const cur = cursor(s.el);
+  s.updates.push(t => {
+    const e = easeOutExpo(prog(t, C5, C5 + 0.55));
+    const dx = (1 - e) * 720;                                        // entra deslizando (câmera contínua)
+    [card, moldura].forEach(d => d.style.transform = `translate(-50%,-50%) translateX(${dx}px) rotate(${-2 + Math.sin(t) * 0.6}deg)`);
+    nome.style.transform = `translate(-50%,-50%) translateX(${dx}px)`;
+    nome.style.opacity = prog(t, ws(186), ws(186) + 0.3) > 0 ? 1 : 0.0;
+    moldura.style.clipPath = `inset(0 ${100 - easeOut(prog(t, C5 + 0.3, C5 + 1.1)) * 100}% 0 0)`;
+    // cursor clica no nome do especialista
+    const c = prog(t, ws(187), ws(188) + 0.2), ce = easeInOut(c);
+    cur.style.transform = `translate(${lerp(700, 470, ce)}px, ${lerp(700, 505, ce)}px) scale(${t > ws(188) + 0.2 && t < ws(188) + 0.35 ? 0.85 : 1})`;
+    cur.style.opacity = t > ws(187) - 0.1 ? 1 : 0;
+  });
+  rodape(s);
+}
+
+/* =============== CENA 6 — CTA =============== */
+{
+  const s = scene(C6, DUR, '#f6f6f6', 0.008);
+  const bolha = el('div', 'abs', s.el, `
+    <div style="font:italic 500 16px Inter;color:#8a8a8a;margin-bottom:8px">↪︎ Encaminhada com frequência</div>
+    <div style="font:800 26px/1.25 Inter;color:#151515">⚠️ APAGÃO MUNDIAL DIA 17!<br>90 DIAS SEM LUZ. REPASSE!</div>
+    <div style="font:500 14px Inter;color:#9a9a9a;text-align:right;margin-top:6px">09:41 ✓✓</div>`);
+  bolha.style.cssText = 'left:360px;top:280px;width:470px;padding:18px 22px;border-radius:22px 22px 22px 6px;background:#fff;box-shadow:0 18px 40px rgba(0,0,0,.14)';
+  bolha.dataset.evitar = 'mensagem';
+  const st = carimbo(s.el, 380, 290, 'BOATO', ws(197));
+  const b1 = bloco(s, 730, [{ seq: [191, 193, S(48)] }, { seq: [194, 194, B(78)] }, { seq: [195, 196, S(52)] }, { seq: [197, 197, B(110)] }]);
+  b1.forEach(r => r.outAt = ws(198) - 0.06);
+  const rot = rotulo(s.el, b1[3], ws(197) + 0.1, { out: ws(198) - 0.06 });
+  const b2 = bloco(s, 700, [{ seq: [198, 199, S(48)] }, { seq: [200, 202, B(54)] }, { seq: [203, 206, S(48)] }, { seq: [207, 208, B(92)] }]);
+  const btn = el('div', 'abs', s.el, '💬 &nbsp;Comentar');
+  btn.style.cssText = `left:360px;top:960px;white-space:nowrap;padding:18px 44px;border-radius:60px;background:${INK};color:#fff;font:700 30px Inter`;
+  const cur = cursor(s.el);
+  s.updates.push(t => {
+    const e = easeOutExpo(prog(t, C6, C6 + 0.5));
+    bolha.style.transform = `translate(-50%,-50%) translateY(${(1 - e) * -400 + Math.sin(t * 1.2) * 5}px) rotate(-1.5deg)`;
+    st.at(t); rot.at(t);
+    const q = pop(t, ws(207), 0.4); btn.style.opacity = t > ws(207) ? 1 : 0;
+    const clk = t > ws(208) + 0.35 && t < ws(208) + 0.5;
+    btn.style.transform = `translate(-50%,-50%) scale(${q * (clk ? 0.92 : 1)})`;
+    btn.style.background = t > ws(208) + 0.35 ? RED : INK;
+    const c = easeInOut(prog(t, ws(207) + 0.1, ws(208) + 0.3));
+    cur.style.transform = `translate(${lerp(640, 420, c)}px, ${lerp(1180, 965, c)}px) scale(${clk ? 0.85 : 1})`;
+    cur.style.opacity = t > ws(207) ? 1 : 0;
+  });
+  rodape(s);
+}
+
+finalize({ duration: DUR, grain: 0.05, vignette: 0.18, flashes: [[C4, 0.12, '20,20,20']], preload: [A + 'foto_sauer2.jpg', A + 'cidade.jpg'] });
+</script>
+</body></html>
