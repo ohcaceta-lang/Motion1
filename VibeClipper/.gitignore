@@ -1,0 +1,5 @@
+trabalho/
+saida/
+.venv/
+.env
+__pycache__/
