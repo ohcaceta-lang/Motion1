@@ -1,0 +1,360 @@
+<!doctype html>
+<html><head><meta charset="utf-8">
+<style>
+@font-face{font-family:'Pop';font-weight:500;font-style:normal;src:url('node_modules/@fontsource/poppins/files/poppins-latin-500-normal.woff2') format('woff2')}
+@font-face{font-family:'Pop';font-weight:500;font-style:italic;src:url('node_modules/@fontsource/poppins/files/poppins-latin-500-italic.woff2') format('woff2')}
+@font-face{font-family:'Pop';font-weight:700;font-style:normal;src:url('node_modules/@fontsource/poppins/files/poppins-latin-700-normal.woff2') format('woff2')}
+@font-face{font-family:'Pop';font-weight:800;font-style:normal;src:url('node_modules/@fontsource/poppins/files/poppins-latin-800-normal.woff2') format('woff2')}
+@font-face{font-family:'Pop';font-weight:800;font-style:italic;src:url('node_modules/@fontsource/poppins/files/poppins-latin-800-italic.woff2') format('woff2')}
+@font-face{font-family:'Pop';font-weight:900;font-style:normal;src:url('node_modules/@fontsource/poppins/files/poppins-latin-900-normal.woff2') format('woff2')}
+</style></head>
+<body>
+<script src="assets/words.js"></script>
+<script src="lib.js"></script>
+<script>
+/* GTA VI — nota 99 empata com Zelda.
+   Referência: marca-forte-cynosure (gradiente mesh animado ↔ fundo branco, cursor clicando para destacar,
+   pílulas caindo, números com onda branca subindo do rodapé, mosaico 3D de cards, palavra gigante final).
+   Novidades: paleta neon de Vice City, trailer oficial em sequência de quadros, vídeo dentro das letras do "99". */
+const A = 'assets/';
+const ROSA = '#ff3d8b', MAG = '#c2187a', ROXO = '#3a0f5c', NOITE = '#14051f', LAR = '#ff9a3c', VERDE = '#00c45a', ESC = '#1c0a2b';
+const P = (sz, wt = 800, it = false) => ({ ff: 'Pop', fw: wt, fs: it ? 'italic' : 'normal', sz, ls: '-0.02em' });
+const N = window.WORDS.length - 1;
+const C2 = ws(10) - 0.12, C3 = ws(16) - 0.12, C4 = ws(26) - 0.12, C5 = ws(35) - 0.12, C6 = ws(44) - 0.12,
+      C7 = ws(58) - 0.12, C8 = ws(67) - 0.12, C9 = ws(83) - 0.12, C10 = ws(98) - 0.12;
+const DUR = Math.ceil((we(N) + 2.0) * 10) / 10;
+
+/* ---------- helpers do estilo ---------- */
+// gradiente mesh animado: manchas que passeiam (função de t)
+function mesh(s, base, blobs, vel = 0.35) {
+  const d = shade(s, `background:${base}`);
+  s.updates.push(t => {
+    const g = blobs.map(([c, x, y, r, ph], k) => {
+      const px = x + Math.sin(t * vel + ph) * 18, py = y + Math.cos(t * vel * 0.8 + ph * 1.3) * 14;
+      return `radial-gradient(circle at ${px}% ${py}%, ${c} 0%, transparent ${r}%)`;
+    });
+    d.style.background = g.join(',') + ',' + base;
+  });
+  return d;
+}
+const MESH_VC = [[ROSA, 20, 15, 55, 0], [LAR, 85, 30, 40, 2], [MAG, 70, 85, 60, 4], [ROXO, 10, 80, 55, 1]];
+const MESH_NOITE = [[MAG, 15, 20, 50, 0], [ROXO, 80, 40, 60, 2], ['#ff3d8b88', 60, 95, 45, 4]];
+// trailer oficial: sequência de quadros (30 fps) em tela cheia
+function clip(s, dir, n, t0, o = {}) {
+  const im = el('img', 'abs', s.el);
+  im.style.cssText = `left:-30px;top:-50px;width:780px;height:1380px;object-fit:cover;filter:${o.filter || 'brightness(.6) saturate(1.15)'}`;
+  im.src = `${A}fr/${dir}/001.jpg`;
+  s.updates.push(t => {
+    if (o.until != null && t >= o.until) { im.style.display = 'none'; return; }
+    if (o.from != null && t < o.from) { im.style.display = 'none'; return; }
+    im.style.display = 'block';
+    const k = Math.floor((t - t0) * 30) % (2 * n - 2), f = (k < n ? k : 2 * n - 2 - k) + 1;   // ping-pong
+    const src = `${A}fr/${dir}/${String(f).padStart(3, '0')}.jpg`;
+    if (!im.src.endsWith(src)) im.src = src;
+    const p = prog(t, s.start, s.end); im.style.transform = `scale(${lerp(1.08, 1.0, easeOut(p))})`;
+  });
+  return im;
+}
+// cursor de mouse que entra, clica na palavra e ela ganha caixa colorida
+const CURSOR = `<svg width="46" height="56" viewBox="0 0 46 56"><path d="M4 3 L4 44 L15 34 L23 52 L31 48 L23 31 L38 31 Z" fill="#fff" stroke="#111" stroke-width="3" stroke-linejoin="round"/></svg>`;
+function clicar(s, rec, k, tc, cor = ROSA, txt = '#ffffff') {
+  const sp = rec.items[k].sp;
+  sp.style.padding = '.02em .16em'; sp.style.borderRadius = '.14em'; sp.style.lineHeight = '1.12';
+  const cur = el('div', 'abs', s.el, CURSOR); cur.style.cssText = 'left:0;top:0;z-index:20;filter:drop-shadow(0 6px 10px rgba(0,0,0,.45))';
+  s.updates.push(t => {
+    const on = t >= tc;
+    sp.style.background = on ? cor : 'transparent';
+    if (on) sp.style.color = txt;
+    sp.style.boxShadow = on ? `0 10px 30px ${cor}66` : 'none';
+    const r = sp.getBoundingClientRect(), z = 1 + (t - s.start) * s.zoom;
+    const tx = 360 + (r.left + r.width * 0.72 - 360) / z, ty = 640 + (r.top + r.height * 0.62 - 640) / z;
+    const a = prog(t, tc - 0.55, tc - 0.05), e = easeOut(a);
+    const clk = t >= tc - 0.05 && t < tc + 0.12 ? 0.82 : 1;
+    cur.style.opacity = t < tc - 0.55 || t > tc + 0.7 ? 0 : 1;
+    cur.style.transform = `translate(${lerp(tx + 160, tx, e)}px, ${lerp(ty + 220, ty, e)}px) scale(${clk})`;
+  });
+}
+// saída com whip (blur + deslize) nos últimos 0,14 s da cena
+function whip(s, dir = -1) {
+  s.updates.push(t => { const q = prog(t, s.end - 0.14, s.end); if (q > 0) { s.el.style.filter = `blur(${q * 14}px)`; s.el.style.transform += ` translateY(${dir * q * 120}px)`; } });
+}
+function img(s, src, css) { const i = el('img', 'abs', s.el); i.src = src; i.style.cssText = css; return i; }
+const pill = (txt, sc) => `<div style="display:flex;align-items:center;gap:14px;background:#fff;border-radius:999px;padding:10px 12px 10px 26px;box-shadow:0 12px 26px rgba(0,0,0,.35);white-space:nowrap;font:700 26px Pop;color:${ESC}">${txt}<span style="background:${sc >= 90 ? VERDE : '#f5b400'};color:#fff;border-radius:999px;padding:4px 16px;font:800 26px Pop">${sc}</span></div>`;
+
+/* ---------- Cena 1 — gancho: trailer + "AMANHÃ" clicado ---------- */
+{
+  const s = scene(0, C2, NOITE, 0.02);
+  clip(s, 'aerea', 108, 0, { filter: 'brightness(.5) saturate(1.2)' });
+  shade(s, `background:linear-gradient(180deg, ${ROXO}cc 0%, transparent 35%, transparent 55%, ${NOITE}ee 100%)`);
+  const lg = img(s, A + 'logo_vi.png', 'left:260px;top:120px;width:200px;height:200px;object-fit:contain;filter:drop-shadow(0 0 30px rgba(255,61,139,.7))');
+  s.updates.push(t => { const p = pop(t, 0.05, 0.45); lg.style.transform = `scale(${p}) rotate(${(1 - p) * -12}deg)`; });
+  const b = bloco(s, 650, [
+    { seq: [0, 2, { font: P(58, 800), color: '#ffffff', text: { 1: '6' } }] }, { gap: 10 },
+    { seq: [3, 3, { font: P(112, 800, true), color: '#ffffff' }] },
+    { seq: [4, 6, { font: P(46, 500), color: '#ffffff' }] },
+    { seq: [7, 9, { font: P(46, 500), color: '#ffffff' }, { 9: { font: P(76, 800), color: ROSA, glow: 'rgba(255,61,139,.55)' } }] },
+  ], { lh: 1.3 });
+  clicar(s, b[1], 0, we(3) + 0.05);
+  whip(s);
+}
+
+/* ---------- Cena 2 — 13 anos: mesh Vice City + contador + linha do tempo ---------- */
+{
+  const s = scene(C2, C3, ROXO, 0.018);
+  mesh(s, ROXO, MESH_VC);
+  const sol = img(s, A + 'st_104.png', 'left:500px;top:90px;width:260px;opacity:.95');
+  s.updates.push(t => { sol.style.transform = `rotate(${t * 25}deg) scale(${pop(t, C2 + 0.1, 0.5)})`; });
+  const num = el('div', 'abs', s.el); num.style.cssText = 'left:360px;white-space:nowrap;text-align:center;color:#fff;font:900 250px/1 Pop;letter-spacing:-0.04em;text-shadow:0 18px 50px rgba(0,0,0,.35)';
+  num.dataset.evitar = 'contador';
+  const tl = el('div', 'abs', s.el, `<div style="position:relative;width:520px;height:60px">
+      <div class="bar" style="position:absolute;left:0;top:28px;height:6px;border-radius:3px;background:#fff"></div>
+      <div style="position:absolute;left:-10px;top:0;font:800 26px Pop;color:#fff;top:46px">2013</div>
+      <div class="fim" style="position:absolute;right:-10px;top:0;font:800 26px Pop;color:#fff;top:46px">2026</div>
+      <div style="position:absolute;left:-8px;top:20px;width:22px;height:22px;border-radius:50%;background:#fff"></div>
+      <div class="dot" style="position:absolute;right:-8px;top:16px;width:30px;height:30px;border-radius:50%;background:${ROSA};border:5px solid #fff"></div></div>`);
+  tl.style.cssText = 'left:360px;';
+  bloco(s, 660, [
+    { el: num, h: 250 },
+    { line: [[['anos', ws(11), { font: P(54, 700), color: '#ffffff' }]]] },
+    { seq: [12, 15, { font: P(48, 500), color: '#ffffff', text: { 15: '5' } }, { 14: { font: P(48, 800), color: '#ffffff' }, 15: { font: P(48, 800), color: '#ffffff' } }] },
+    { gap: 14 }, { el: tl, h: 90 },
+  ]);
+  s.updates.push(t => {
+    const p = prog(t, ws(10), we(11)); num.textContent = Math.round(13 * easeOut(p)); num.style.opacity = t >= ws(10) - 0.05 ? 1 : 0;
+    num.style.transform = `translate(-50%,-50%) scale(${0.6 + 0.4 * backOut(prog(t, ws(10), ws(10) + 0.4))})`;
+    const q = easeInOut(prog(t, ws(12), we(15)));
+    tl.style.transform = 'translate(-50%,-50%)'; tl.style.opacity = t >= ws(12) - 0.1 ? 1 : 0;
+    tl.querySelector('.bar').style.width = 520 * q + 'px';
+    tl.querySelector('.dot').style.transform = `scale(${pop(t, we(15) - 0.1, 0.35)})`;
+    tl.querySelector('.fim').style.opacity = q > 0.95 ? 1 : 0;
+  });
+  whip(s);
+}
+
+/* ---------- Cena 3 — Vice City (trailer) + Jason e Lucia (arte oficial) ---------- */
+{
+  const s = scene(C3, C4, NOITE, 0.016);
+  clip(s, 'highway', 108, C3, { filter: 'brightness(.55) saturate(1.2)' });
+  shade(s, `background:linear-gradient(180deg, transparent 30%, ${NOITE}dd 75%, ${NOITE} 100%)`);
+  const card = el('div', 'abs', s.el, `<img src="${A}jl.jpg" style="width:100%;height:100%;object-fit:cover;object-position:50% 30%;border-radius:26px">`);
+  card.style.cssText = 'left:150px;top:120px;width:420px;height:520px;border:8px solid #fff;border-radius:34px;box-shadow:0 30px 60px rgba(0,0,0,.55);opacity:0';
+  card.dataset.evitar = 'arte Jason e Lucia';
+  const tags = ['JASON', 'LUCIA'].map((n, k) => { const g = el('div', 'abs', s.el, n);
+    g.style.cssText = `left:${k ? 470 : 120}px;top:${k ? 540 : 470}px;white-space:nowrap;font:800 30px Pop;color:#fff;background:${k ? ROSA : LAR};padding:8px 24px;border-radius:999px;box-shadow:0 10px 24px rgba(0,0,0,.4);z-index:5`; return g; });
+  const fl = img(s, A + 'st_107.png', 'left:-40px;top:560px;width:150px;z-index:4');
+  s.updates.push(t => {
+    const p = pop(t, ws(22) - 0.1, 0.45);
+    card.style.opacity = t >= ws(22) - 0.1 ? 1 : 0;
+    card.style.transform = `translateY(${(1 - Math.min(p, 1)) * -200}px) rotate(${lerp(-10, -3, Math.min(p, 1))}deg) scale(${p})`;
+    tags.forEach((g, k) => { const q = pop(t, ws(k ? 25 : 23), 0.35); g.style.transform = `scale(${q}) rotate(${k ? 4 : -5}deg)`; });
+    fl.style.transform = `translateX(${lerp(-200, 0, easeOut(prog(t, ws(20), ws(20) + 0.5)))}px) rotate(${Math.sin(t * 3) * 4}deg)`;
+  });
+  const b = bloco(s, 820, [
+    { seq: [16, 19, { font: P(46, 500), color: '#ffffff' }] },
+    { seq: [20, 21, { font: P(100, 900), color: ROSA, glow: 'rgba(255,61,139,.6)', text: { 20: 'VICE', 21: 'CITY' } }] },
+    { seq: [22, 25, { font: P(50, 700), color: '#ffffff' }, { 23: { font: P(50, 800), color: LAR }, 25: { font: P(50, 800), color: ROSA } }] },
+  ]);
+  whip(s);
+}
+
+/* ---------- Cena 4 — corte seco para o branco: Metacritic 99 ---------- */
+{
+  const s = scene(C4, C5, '#fff6fb', 0.014);
+  mesh(s, '#fff6fb', [['#ffd3e6', 15, 10, 45, 0], ['#ffe6cf', 90, 90, 45, 2]], 0.5);
+  const box = el('div', 'abs', s.el, `<div class="n" style="font:900 150px/1 Pop;color:#fff;letter-spacing:-0.05em">0</div>`);
+  box.style.cssText = `left:360px;width:250px;height:250px;border-radius:30px;background:${VERDE};display:flex;align-items:center;justify-content:center;box-shadow:0 26px 60px rgba(0,196,90,.45)`;
+  box.dataset.evitar = 'nota';
+  const badge = el('div', 'abs', s.el, 'MUST-PLAY');
+  badge.style.cssText = `left:540px;white-space:nowrap;font:800 24px Pop;color:#fff;background:${ESC};padding:8px 18px;border-radius:12px;z-index:6`;
+  const b = bloco(s, 640, [
+    { seq: [26, 28, { font: P(60, 700), color: ESC, from: '#f0c6da' }, { 28: { font: P(60, 800, true), color: MAG } }] },
+    { gap: 16 }, { el: box, h: 250 }, { gap: 16 },
+    { seq: [29, 34, { font: P(52, 500), color: ESC, from: '#f0c6da', text: { 29: 'nota', 30: '', 31: '', 32: '99' } }, { 32: { font: P(52, 800), color: VERDE }, 34: { font: P(52, 800), color: ESC } }] },
+  ]);
+  // esconde as palavras vazias (30, 31) para não deixar buraco
+  [1, 2].forEach(k => { b[1].items[k].gap = 0; b[1].items[k].sp.style.display = 'none'; });
+  clicar(s, b[1], 5, we(34) + 0.05, ESC);
+  s.updates.push(t => {
+    const p = prog(t, ws(30), we(32)); box.querySelector('.n').textContent = Math.round(99 * easeOut(p));
+    const q = pop(t, ws(29) - 0.15, 0.45); box.style.transform = `translate(-50%,-50%) scale(${q}) rotate(${(1 - Math.min(q, 1)) * 10}deg)`;
+    badge.style.top = parseFloat(box.style.top) + 'px';
+    badge.style.transform = `translate(-50%,-50%) rotate(-8deg) scale(${pop(t, we(32) + 0.1, 0.35)})`;
+  });
+  whip(s);
+}
+
+/* ---------- Cena 5 — análises: pílulas caindo e empilhando + contador ---------- */
+{
+  const s = scene(C5, C6, NOITE, 0.016);
+  mesh(s, NOITE, MESH_NOITE);
+  const revs = [['Game Informer', 100], ['VICE', 100], ['IGN França', 100], ['Everyeye', 100], ['GameStar', 97]];
+  const ps = revs.map(([n, sc], k) => { const d = el('div', 'abs', s.el, pill(n, sc)); d.style.cssText = 'left:360px;top:0;z-index:3'; return d; });
+  const t0s = [ws(35), ws(37), ws(39), ws(40), ws(41)];
+  s.updates.push(t => ps.forEach((d, k) => {
+    const p = prog(t, t0s[k], t0s[k] + 0.5), e = backOut(p);
+    const yF = 430 - k * 64, rot = [-4, 3, -2, 5, -3][k], xo = [-40, 50, -20, 30, -50][k];
+    d.style.opacity = t >= t0s[k] ? 1 : 0;
+    d.style.transform = `translate(calc(-50% + ${xo}px), ${lerp(-150, yF, Math.min(e, 1.04))}px) rotate(${lerp(rot * 5, rot, easeOut(p))}deg)`;
+  }));
+  const num = el('div', 'abs', s.el); num.style.cssText = 'left:360px;white-space:nowrap;color:#fff;font:900 150px/1 Pop;letter-spacing:-0.04em';
+  num.dataset.evitar = 'contador';
+  const b = bloco(s, 790, [
+    { el: num, h: 160 },
+    { seq: [40, 40, { font: P(54, 700), color: '#ffffff' }] },
+    { seq: [41, 42, { font: P(50, 500), color: '#ffffff' }, { 42: { font: P(84, 900), color: '#ffffff' } }] },
+    { seq: [43, 43, { font: P(54, 700), color: ROSA }] },
+  ]);
+  clicar(s, b[1], 1, we(42) + 0.02, '#e3141b');
+  s.updates.push(t => {
+    const p = prog(t, ws(37), we(39)); num.textContent = '+' + Math.round(140 * easeOut(p));
+    num.style.opacity = t >= ws(35) ? 1 : 0; num.style.transform = `translate(-50%,-50%) scale(${pop(t, ws(35), 0.4)})`;
+  });
+  whip(s);
+}
+
+/* ---------- Cena 6 — empate: GTA VI 99 = 99 Zelda (branco) ---------- */
+{
+  const s = scene(C6, C7, '#fff6fb', 0.012);
+  mesh(s, '#fff6fb', [['#ffd3e6', 85, 12, 45, 0], ['#d8f5e2', 10, 90, 45, 2]], 0.5);
+  const card = (src, pos, nome, x, rot, t0) => {
+    const c = el('div', 'abs', s.el, `<div style="width:100%;height:330px;border-radius:20px;overflow:hidden"><img src="${src}" style="width:100%;height:100%;object-fit:cover;object-position:${pos}"></div>
+      <div style="font:800 24px Pop;color:${ESC};text-align:center;margin-top:12px;white-space:nowrap">${nome}</div>
+      <div style="position:absolute;right:-18px;top:-22px;width:96px;height:96px;border-radius:20px;background:${VERDE};color:#fff;font:900 56px/96px Pop;text-align:center;box-shadow:0 10px 24px rgba(0,196,90,.5)">99</div>`);
+    c.style.cssText = `left:${x}px;top:150px;width:250px;height:410px;background:#fff;border-radius:28px;padding:12px;box-shadow:0 24px 50px rgba(60,10,80,.25)`;
+    c.dataset.evitar = 'card';
+    s.updates.push(t => { const p = pop(t, t0, 0.45); c.style.transform = `translateY(${(1 - Math.min(p, 1)) * 300}px) rotate(${rot}deg) scale(${p})`; c.style.opacity = t >= t0 ? 1 : 0; });
+    return c;
+  };
+  card(A + 'm_74.jpg', '50% 30%', 'GTA VI · 2026', 70, -4, C6 + 0.05);
+  card(A + 'zelda.jpg', '50% 50%', 'Ocarina · 1998', 400, 4, ws(47) - 0.1);
+  const eq = el('div', 'abs', s.el, '='); eq.style.cssText = `left:360px;top:355px;font:900 110px/1 Pop;color:${ROSA};z-index:6`;
+  const cred = el('div', 'abs', s.el, 'Capa: Nintendo'); cred.style.cssText = `left:525px;top:578px;white-space:nowrap;font:500 18px Pop;color:#7a5a86`;
+  s.updates.push(t => { eq.style.transform = `translate(-50%,-50%) scale(${pop(t, ws(45), 0.4)})`; cred.style.opacity = t > ws(47) ? 1 : 0; cred.style.transform = 'translate(-50%,0)'; });
+  const b = bloco(s, 800, [
+    { seq: [44, 46, { font: P(50, 500), color: ESC, from: '#f0c6da' }, { 45: { font: P(76, 800), color: ESC } }] },
+    { seq: [47, 47, { font: P(100, 900), color: '#1f9e4a', from: '#c9eed6', text: { 47: 'ZELDA' } }] },
+    { seq: [48, 50, { font: P(48, 700, true), color: ESC, from: '#f0c6da' }] }, { gap: 6 },
+    { line: [[['de', ws(51), { font: P(46, 500), color: ESC }], ['1998', ws(52), { font: P(46, 800), color: MAG }]], { from: '#f0c6da' }] },
+  ], { lh: 1.3 });
+  clicar(s, b[0], 1, we(45) + 0.05, ROSA);
+  whip(s);
+}
+
+/* ---------- Cena 7 — o mais bem avaliado de todos os tempos: troféu ---------- */
+{
+  const s = scene(C7, C8, NOITE, 0.02);
+  mesh(s, NOITE, [[ '#1f9e4a', 50, 30, 45, 0], [MAG, 85, 80, 50, 2], [ROXO, 10, 70, 55, 1]]);
+  const tro = img(s, tw('1f3c6'), 'left:360px;width:220px;height:220px;filter:drop-shadow(0 20px 40px rgba(255,190,40,.55))');
+  tro.dataset.evitar = 'troféu';
+  bloco(s, 640, [
+    { el: tro, h: 240 }, { gap: 10 },
+    { seq: [58, 61, { font: P(50, 500), color: '#ffffff' }] },
+    { seq: [62, 62, { font: P(96, 900), color: '#ffffff', glow: 'rgba(255,255,255,.35)' }] },
+    { seq: [63, 66, { font: P(50, 500), color: '#ffffff' }, { 64: { font: P(50, 800), color: '#ffd23f' } }] },
+  ]);
+  s.updates.push(t => { const p = pop(t, C7 + 0.05, 0.5); tro.style.transform = `translate(-50%,-50%) scale(${p}) rotate(${Math.sin(t * 2.4) * 6}deg)`; });
+  whip(s);
+}
+
+/* ---------- Cena 8 — IV 98, V 97, VI 99: onda branca subindo + números ---------- */
+{
+  const s = scene(C8, C9, MAG, 0.012);
+  mesh(s, MAG, [[ROSA, 20, 15, 55, 0], [ROXO, 85, 35, 50, 2], [LAR, 60, 70, 40, 4]]);
+  const wave = el('div', 'abs', s.el, `<svg width="900" height="700" viewBox="0 0 900 700"><path class="wv" fill="#fff6fb"/></svg>`);
+  wave.style.cssText = 'left:-90px;top:0';
+  const rows = [['IV', 98, '2008', 67], ['V', 97, '2013', 73], ['VI', 99, '2026', 78]].map(([r, n, ano, i]) => {
+    const d = el('div', 'abs', s.el, `<div style="display:flex;align-items:center;gap:28px;white-space:nowrap">
+        <div style="width:118px;height:118px;border-radius:50%;background:#fff;box-shadow:inset 0 -8px 16px rgba(0,0,0,.12),0 12px 26px rgba(0,0,0,.3);display:flex;align-items:center;justify-content:center;font:400 54px Anton;color:${MAG}">${r}</div>
+        <div class="nb" style="font:900 108px/1 Pop;color:#fff;letter-spacing:-0.04em;padding:0 14px;border-radius:18px">${n}</div>
+        <div style="font:500 italic 26px Pop;color:#fff;line-height:1.15">GTA ${r}<br><b style="font-weight:800">${ano}</b></div></div>`);
+    d.style.cssText = 'left:360px'; d.dataset.evitar = 'linha ' + r; return { d, i };
+  });
+  bloco(s, 600, [
+    { el: rows[0].d, h: 150 }, { el: rows[1].d, h: 150 }, { el: rows[2].d, h: 150 }, { gap: 14 },
+    { seq: [78, 82, { font: P(50, 600), color: '#ffffff', text: { 79: '6' } }, { 80: { font: P(66, 900, true), color: '#ffffff' } }] },
+  ]);
+  s.updates.push(t => {
+    rows.forEach(({ d, i }, k) => { const p = prog(t, ws(i) - 0.1, ws(i) + 0.4), e = easeOutExpo(p);
+      d.style.opacity = p > 0 ? 1 : 0; d.style.transform = `translate(calc(-50% + ${(1 - e) * 500}px), -50%)`;
+      if (k === 2) { const nb = d.querySelector('.nb'), on = t >= ws(80); nb.style.background = on ? VERDE : 'transparent'; nb.style.boxShadow = on ? '0 14px 34px rgba(0,196,90,.55)' : 'none';
+        d.style.transform += ` scale(${on ? 1 + 0.08 * backOut(prog(t, ws(80), ws(80) + 0.3)) : 1})`; }
+      else d.style.opacity = t >= ws(80) ? 0.55 : d.style.opacity; });
+    const h = lerp(1280, 1010, easeOut(prog(t, C8, C8 + 0.9)));
+    let dp = `M0 ${h - 0} `; for (let x = 0; x <= 900; x += 30) dp += `L${x} ${h + Math.sin(x / 120 + t * 3) * 26 + Math.sin(x / 55 - t * 2) * 8} `;
+    dp += 'L900 1300 L0 1300 Z'; wave.querySelector('.wv').setAttribute('d', dp);
+    wave.querySelector('svg').setAttribute('viewBox', '0 0 900 1300'); wave.querySelector('svg').setAttribute('height', '1300');
+  });
+  whip(s);
+}
+
+/* ---------- Cena 9 — lançamento: trailer (jet ski → pôr do sol) + calendário ---------- */
+{
+  const s = scene(C9, C10, NOITE, 0.016);
+  clip(s, 'jetski', 108, C9, { until: ws(91), filter: 'brightness(.55) saturate(1.2)' });
+  clip(s, 'sunset', 84, ws(91), { from: ws(91), filter: 'brightness(.6) saturate(1.25)' });
+  shade(s, `background:linear-gradient(180deg, ${ROXO}99 0%, transparent 30%, transparent 60%, ${NOITE}cc 100%)`);
+  const cal = el('div', 'abs', s.el, `<div style="width:230px;border-radius:28px;overflow:hidden;background:#fff;box-shadow:0 26px 60px rgba(0,0,0,.5);text-align:center">
+      <div style="background:${ROSA};font:800 34px/64px Pop;color:#fff;letter-spacing:.08em">NOV</div>
+      <div style="font:900 124px/150px Pop;color:${ESC};letter-spacing:-0.04em">19</div></div>`);
+  cal.style.cssText = 'left:360px'; cal.dataset.evitar = 'calendário';
+  const b = bloco(s, 640, [
+    { seq: [83, 86, { font: P(46, 500), color: '#ffffff' }] },
+    { seq: [87, 87, { font: P(104, 900, true), color: '#ffffff' }] },
+    { gap: 12 }, { el: cal, h: 214 }, { gap: 16 },
+    { line: [[['no', ws(91), { font: P(48, 500), color: '#ffffff' }], ['PS5', ws(92), { font: P(48, 800), color: '#ffffff' }], ['e', ws(94), { font: P(48, 500), color: '#ffffff' }], ['Xbox Series', ws(96), { font: P(48, 800), color: '#ffffff' }]]] },
+  ]);
+  clicar(s, b[1], 0, we(87) + 0.02, ROSA);
+  s.updates.push(t => { const p = pop(t, ws(88) - 0.05, 0.45); cal.style.opacity = t >= ws(88) - 0.05 ? 1 : 0; cal.style.transform = `translate(-50%,-50%) scale(${p}) rotate(${lerp(-14, -3, Math.min(p, 1))}deg)`; });
+  whip(s);
+}
+
+/* ---------- Cena 10 — CTA: mosaico 3D de prints + "99" com o trailer dentro das letras ---------- */
+{
+  const s = scene(C10, DUR, NOITE, 0.012);
+  const mos = el('div', 'abs', s.el); mos.style.cssText = 'left:-120px;top:-160px;width:960px;height:1600px;display:grid;grid-template-columns:repeat(4,1fr);gap:18px;transform-origin:50% 50%;opacity:.8';
+  ['m_98', 'm_100', 'm_95', 'm_121', 'm_64', 'm_67', 'm_82', 'm_36', 'm_70', 'm_23', 'm_62', 'm_63', 'm_66', 'm_102', 'm_74', 'm_98'].forEach(n => {
+    el('div', '', mos, `<img src="${A}${n}.jpg" style="width:100%;height:100%;object-fit:cover;border-radius:22px">`).style.cssText = 'height:380px'; });
+  mesh(s, 'transparent', [[`${MAG}aa`, 20, 20, 50, 0], [`${ROXO}cc`, 80, 70, 60, 2]]);
+  shade(s, `background:radial-gradient(ellipse at 50% 50%, ${NOITE}88 0%, ${NOITE}ee 70%)`);
+  const n99 = el('div', 'abs', s.el, '99');
+  n99.style.cssText = `left:360px;white-space:nowrap;font:900 330px/1 Pop;letter-spacing:-0.06em;color:transparent;-webkit-background-clip:text;background-clip:text;background-size:cover;background-position:50% 50%;-webkit-text-stroke:3px #ffffff;filter:drop-shadow(0 0 30px rgba(255,61,139,.6))`;
+  n99.dataset.evitar = '99';
+  const ghost = img(s, '', 'left:0;top:0;width:4px;height:4px;opacity:0.01');   // força a decodificação do quadro usado nas letras
+  const com = el('div', 'abs', s.el, `<div style="display:flex;align-items:center;gap:16px;background:rgba(255,255,255,.96);border-radius:22px;padding:16px 22px;width:520px;box-shadow:0 20px 40px rgba(0,0,0,.45)">
+      <div style="width:56px;height:56px;border-radius:50%;background:linear-gradient(135deg,${ROSA},${LAR});flex:none"></div>
+      <div style="font:500 26px Pop;color:#7a6a86;white-space:nowrap"><span class="tx" style="color:${ESC}"></span><span class="cr" style="color:${ROSA}">|</span></div>
+      <div style="margin-left:auto;background:${ROSA};color:#fff;border-radius:14px;font:800 22px/44px Pop;padding:0 18px">Enviar</div></div>`);
+  com.style.cssText = 'left:360px'; com.dataset.evitar = 'comentário';
+  const b = bloco(s, 650, [
+    { el: n99, h: 350 },
+    { seq: [100, 102, { font: P(54, 700), color: '#ffffff', text: { 101: '6' } }] },
+    { seq: [103, 106, { font: P(50, 500), color: '#ffffff' }, { 104: { font: P(80, 900, true), color: '#ffffff' }, 106: { font: P(50, 800), color: '#4be08a' } }] },
+    { gap: 20 }, { el: com, h: 100 },
+  ]);
+  clicar(s, b[1], 1, we(104) + 0.05, ROSA);
+  const msg = 'GTA 6 merece! 🔥';
+  s.updates.push(t => {
+    mos.style.transform = `perspective(1400px) rotateX(${18 + Math.sin(t * .4) * 3}deg) rotateZ(${-12 + (t - C10) * 1.2}deg) translateY(${-(t - C10) * 30}px)`;
+    const k = Math.floor((t - C10) * 30) % 118, f = (k < 60 ? k : 118 - k) + 1;
+    const src = `${A}fr/club/${String(f).padStart(3, '0')}.jpg`;
+    if (!ghost.src.endsWith(src)) ghost.src = src;
+    n99.style.backgroundImage = `url(${src})`;
+    const p = pop(t, C10 + 0.05, 0.55); n99.style.transform = `translate(-50%,-50%) scale(${p})`;
+    const q = pop(t, ws(107) - 0.1, 0.4); com.style.opacity = t >= ws(107) - 0.1 ? 1 : 0; com.style.transform = `translate(-50%,-50%) scale(${q})`;
+    const nn = Math.floor(clamp((t - ws(107) - 0.2) * 14, 0, msg.length)); com.querySelector('.tx').textContent = [...msg].slice(0, nn).join('');
+    com.querySelector('.cr').style.opacity = Math.floor(t * 3) % 2 ? 1 : 0;
+  });
+  const lg = img(s, A + 'logo_gta.png', 'left:290px;top:100px;width:140px;height:155px;object-fit:contain');
+  s.updates.push(t => { lg.style.transform = `scale(${pop(t, C10 + 0.3, 0.4)})`; });
+}
+
+/* ---------- crédito fixo das imagens ---------- */
+const cred = el('div', 'abs', stage, 'Imagens e trailer: Rockstar Games');
+cred.style.cssText = 'left:360px;top:1222px;transform:translateX(-50%);white-space:nowrap;font:500 17px Pop;padding:5px 14px;border-radius:999px;z-index:30';
+globalUpdate = t => { const claro = (t >= C4 && t < C5) || (t >= C6 && t < C7) || (t >= C8 + 0.6 && t < C9);
+  cred.style.color = claro ? '#5a3a6a' : 'rgba(255,255,255,.85)'; cred.style.background = claro ? 'rgba(255,255,255,.6)' : 'rgba(0,0,0,.35)'; };
+
+finalize({ duration: DUR, grain: 0.06, vignette: 0.35,
+  flashes: [[C2, 0.14, '255,61,139'], [C3, 0.12], [C4, 0.1], [C5, 0.12, '255,61,139'], [C6, 0.1], [C7, 0.12], [C8, 0.12, '255,61,139'], [C9, 0.12], [C10, 0.16, '255,61,139']] });
+</script>
+</body></html>

@@ -55,7 +55,8 @@ scripts de render e `descricao_tiktok.txt`. Commit e push na branch indicada pel
 | 14/11/2026 | `videos/alan-ruschel-despedida` (V1) | Cinemático próprio (preto, verde, ouro) | polaroid caindo, rota do voo tracejada, contadores, carimbo, comentário digitando |
 | 14/11/2026 | `videos/alan-ruschel-despedida` (V2) | `insta-trend-documentary-motion` | abertura clara → azul-marinho, cursor + caixa tracejada, cards 3D, pílulas com slide, infográfico de pontos, corte seco com grão, microtipografia de revista |
 | 14/11/2026 | `videos/alan-ruschel-despedida` (V3) | `motion-design-earnedits` | vinho + vinheta, palavras gigantes cortadas, eco de texto, stickers P&B caindo, 16 fps, rodapé de post |
+| 18/11/2026 | `videos/gta6-nota-99` | `marca-forte-cynosure` (neon Vice City: rosa, roxo, laranja) | gradiente mesh animado ↔ corte seco para branco, cursor clicando e palavra virando caixa colorida, pílulas de crítica caindo e empilhando, onda branca subindo com números (IV 98, V 97, VI 99), mosaico 3D de prints, trailer oficial em sequência de quadros, vídeo dentro das letras do "99", whip com blur nas saídas, fonte Poppins |
 
 Referências ainda **não usadas**: `branding-why-storytelling-earnedits`, `agencia-marketing-exar`,
-`vender-sem-palavras-insiderforce`, `marca-forte-cynosure`, `corretora-confiavel-pfh`,
+`vender-sem-palavras-insiderforce`, `corretora-confiavel-pfh`,
 `posicionamento-al-ries-rivinity`, `mcdonalds-imoveis-earnedits`.
