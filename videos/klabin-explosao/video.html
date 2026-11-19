@@ -1,0 +1,417 @@
+<!doctype html>
+<html><head><meta charset="utf-8"></head>
+<body>
+<script src="assets/words.js"></script>
+<script src="lib.js"></script>
+<script>
+/* Explosão na Klabin (Otacílio Costa/SC, 18/11/2026)
+   Referência: branding-why-storytelling-earnedits → "uma cena-mundo por frase":
+   HUD técnico com callouts, tela de bloqueio + notificação com zoom para dentro, visor de câmera REC,
+   lousa a giz, holofote, prontuário com checklist, jornal, fita de isolamento e barra de busca no CTA.
+   Novidade: vídeos REAIS tocando quadro a quadro dentro das cenas (sequências em assets/clip_*). */
+const LAR = '#ff5a1f', AMA = '#ffc400', VERDE = '#2fd27a', BR = '#ffffff';
+const A = 'assets/';
+const N = window.WORDS.length - 1;
+const C2 = ws(11) - 0.12, C3 = ws(25) - 0.12, C4 = ws(35) - 0.12, C5 = ws(43) - 0.12,
+      C6 = ws(63) - 0.12, C6b = ws(72) - 0.1, C6c = ws(77) - 0.1, C7 = ws(87) - 0.12, C8 = ws(93) - 0.12,
+      C9 = ws(99) - 0.12, C10 = ws(117) - 0.12, C11 = ws(136) - 0.12, C12 = ws(148) - 0.12;
+const DUR = Math.ceil((we(N) + 2.0) * 10) / 10;
+const S = (n, o = {}) => ({ font: FONTS.sans(n, 700), color: BR, ...o });
+
+/* ---------- utilidades desta peça ---------- */
+const CLIPS = { nuvem: 114, predio: 90, torre: 48, licor: 90, fuga: 78, destrocos: 138 };
+function clip(s, nome, o = {}) {           // vídeo real tocando quadro a quadro (determinístico)
+  const im = el('img', 'abs', s.el); const n = CLIPS[nome];
+  im.style.cssText = `left:-20px;top:-36px;width:760px;height:1352px;object-fit:cover;filter:${o.filter || 'none'}`;
+  s.updates.push(t => {
+    const k = Math.min(n, Math.max(1, Math.floor((t - s.start) * 30 * (o.speed || 1)) + 1 + (o.skip || 0)));
+    const src = `${A}clip_${nome}/f_${String(k).padStart(4, '0')}.jpg`; if (im.getAttribute('src') !== src) im.setAttribute('src', src);
+    const p = prog(t, s.start, s.end); im.style.transform = `scale(${lerp(o.z0 ?? 1.0, o.z1 ?? 1.08, p)}) translateY(${lerp(0, o.py || 0, p)}px)`;
+  });
+  return im;
+}
+function credito(s, txt, o = {}) {
+  const c = el('div', 'abs', s.el, txt);
+  c.style.cssText = `left:${o.x ?? 40}px;top:${o.y ?? 1196}px;white-space:nowrap;font:600 15px Inter;letter-spacing:.02em;color:${o.cor || 'rgba(255,255,255,.85)'};
+    background:${o.bg || 'rgba(0,0,0,.45)'};padding:5px 10px;border-radius:6px`;
+  return c;
+}
+function entra(s, tipo = 'whip', d = 0.22) {  // transições motivadas
+  s.updates.push(t => {
+    const p = prog(t, s.start, s.start + d); if (p >= 1) return; const e = easeOutExpo(p);
+    if (tipo === 'whip') { s.el.style.transform += ` translateX(${(1 - e) * 140}px)`; s.el.style.filter = `blur(${(1 - e) * 18}px)`; }
+    if (tipo === 'zoom') { s.el.style.transform += ` scale(${lerp(1.35, 1, e)})`; s.el.style.filter = `blur(${(1 - e) * 14}px)`; }
+    if (tipo === 'drop') { s.el.style.transform += ` translateY(${(1 - e) * -160}px)`; s.el.style.filter = `blur(${(1 - e) * 16}px)`; }
+  });
+}
+function sai(s, tipo = 'zoom', d = 0.2) {
+  s.updates.push(t => { if (window.CHK) return;
+    const p = prog(t, s.end - d, s.end); if (p <= 0) return; const e = easeIn(p);
+    if (tipo === 'zoom') { s.el.style.transform += ` scale(${1 + e * 0.9})`; s.el.style.filter = `blur(${e * 16}px)`; }
+    if (tipo === 'whip') { s.el.style.transform += ` translateX(${-e * 160}px)`; s.el.style.filter = `blur(${e * 18}px)`; }
+  });
+}
+function hud(s, o = {}) {                   // moldura de HUD técnico: cantos, réguas, códigos laterais
+  const cor = o.cor || 'rgba(255,255,255,.7)';
+  const h = el('div', 'abs', s.el); h.style.cssText = 'inset:0;pointer-events:none';
+  const c = (x, y, r) => `<div style="position:absolute;left:${x}px;top:${y}px;width:46px;height:46px;border-top:3px solid ${cor};border-left:3px solid ${cor};transform:rotate(${r}deg)"></div>`;
+  let ticks = ''; for (let i = 0; i < 26; i++) ticks += `<div style="position:absolute;left:${i % 5 ? 30 : 24}px;top:${300 + i * 26}px;width:${i % 5 ? 10 : 16}px;height:2px;background:${cor}"></div>`;
+  h.innerHTML = c(28, 28, 0) + c(646, 28, 90) + c(646, 1206, 180) + c(28, 1206, 270) + ticks +
+    `<div style="position:absolute;right:20px;top:640px;transform:translate(50%,-50%) rotate(90deg);white-space:nowrap;font:600 14px Inter;letter-spacing:.3em;color:${cor}">${o.lado || 'OTACÍLIO COSTA · SC · 27°49′S 50°07′O'}</div>
+     <div style="position:absolute;left:84px;top:44px;white-space:nowrap;font:700 15px Inter;letter-spacing:.25em;color:${cor}">${o.topo || ''}</div>`;
+  return h;
+}
+function rec(s, t0) {                       // visor de câmera: REC piscando, timecode, grade 3x3, bateria
+  const v = el('div', 'abs', s.el); v.style.cssText = 'inset:0;pointer-events:none';
+  v.innerHTML = `<div style="position:absolute;left:240px;top:0;width:2px;height:1280px;background:rgba(255,255,255,.14)"></div>
+    <div style="position:absolute;left:480px;top:0;width:2px;height:1280px;background:rgba(255,255,255,.14)"></div>
+    <div style="position:absolute;top:427px;left:0;height:2px;width:720px;background:rgba(255,255,255,.14)"></div>
+    <div style="position:absolute;top:853px;left:0;height:2px;width:720px;background:rgba(255,255,255,.14)"></div>
+    <div class="dot" style="position:absolute;left:52px;top:62px;width:18px;height:18px;border-radius:50%;background:#ff2a2a"></div>
+    <div style="position:absolute;left:80px;top:56px;font:800 24px Inter;color:#fff;letter-spacing:.06em">REC</div>
+    <div class="tc" style="position:absolute;right:52px;top:58px;font:700 22px 'Courier New',monospace;color:#fff"></div>
+    <div style="position:absolute;right:52px;top:96px;width:44px;height:20px;border:2px solid #fff;border-radius:4px"><div style="margin:2px;width:26px;height:12px;background:#fff"></div></div>
+    <div style="position:absolute;left:52px;top:1150px;font:700 16px Inter;color:rgba(255,255,255,.85);letter-spacing:.12em">18.11.2026 · 4K · 30FPS</div>
+    <div style="position:absolute;left:338px;top:618px;width:44px;height:44px;border:2px solid rgba(255,255,255,.35)"></div>`;
+  const dot = v.querySelector('.dot'), tc = v.querySelector('.tc');
+  s.updates.push(t => { dot.style.opacity = Math.floor(t * 2) % 2 ? 0.25 : 1;
+    const x = 13 * 3600 + 15 * 60 + 40 + (t - t0); const hh = Math.floor(x / 3600), mm = Math.floor(x / 60) % 60, ss = Math.floor(x) % 60, ff = Math.floor((x % 1) * 30);
+    tc.textContent = [hh, mm, ss, ff].map(n => String(n).padStart(2, '0')).join(':'); });
+  return v;
+}
+function faixaLeitura(s, y0 = 430, y1 = 860, a = 0.7) {
+  shade(s, `background:linear-gradient(180deg, rgba(0,0,0,0) ${y0 - 160}px, rgba(0,0,0,${a}) ${y0}px, rgba(0,0,0,${a}) ${y1}px, rgba(0,0,0,0) ${y1 + 160}px)`);
+}
+
+/* ===== Cena 1 — gancho: vídeo real da nuvem + HUD ===== */
+{
+  const s = scene(0, C2, '#000', 0.012);
+  clip(s, 'nuvem', { z0: 1.12, z1: 1.0, filter: 'contrast(1.1) saturate(.85)' });
+  faixaLeitura(s, 470, 810, 0.62);
+  hud(s, { topo: 'ALERTA · UNIDADE INDUSTRIAL' });
+  const b = bloco(s, 640, [
+    { seq: [0, 1, { font: FONTS.caps(104), color: BR, text: { 0: 'UMA', 1: 'EXPLOSÃO' } }, { 1: { color: LAR, glow: 'rgba(255,90,31,.55)', from: '#401204' } }] },
+    { seq: [2, 5, S(44)] },
+    { seq: [6, 8, S(44)], },
+    { seq: [9, 10, S(44)] },
+  ]);
+  b[0].extra = t => t < ws(1) + 0.3 ? `translateX(${Math.sin(t * 90) * 6 * (1 - prog(t, ws(1), ws(1) + 0.3))}px)` : '';
+  // grifo laranja sob "papel"
+  const g = el('div', 'abs', s.el); g.style.cssText = `height:10px;background:${LAR};border-radius:5px;transform-origin:left`;
+  s.updates.push(t => { const r = b[2].items[2].sp; const L = b[2].L; const p = easeOutExpo(prog(t, ws(8) + 0.2, ws(8) + 0.6));
+    g.style.left = (L.offsetLeft - L.offsetWidth / 2 + r.offsetLeft) + 'px'; g.style.top = (L.offsetTop + 20) + 'px'; g.style.width = r.offsetWidth + 'px'; g.style.transform = `scaleX(${p})`; g.style.opacity = p > 0 ? 1 : 0; });
+  s.updates.push(t => { const k = prog(t, ws(1), ws(1) + 0.5); if (k > 0 && k < 1) s.el.style.transform += ` translate(${Math.sin(t * 80) * 10 * (1 - k)}px, ${Math.cos(t * 70) * 8 * (1 - k)}px)`; });
+  credito(s, 'Vídeo: Reprodução/Redes Sociais via ND Mais');
+  sai(s, 'whip', 0.16);
+}
+
+/* ===== Cena 2 — tela de bloqueio: 13:15 + notificação ===== */
+{
+  const s = scene(C2, C3, '#0a0a0a', 0.01);
+  bg(s, A + 'aerea.jpg', { z0: 1.25, z1: 1.1, filter: 'blur(14px) brightness(.45) saturate(1.2)' });
+  shade(s, 'background:linear-gradient(180deg, rgba(10,20,40,.35), rgba(0,0,0,.55))');
+  entra(s, 'whip');
+  const clock = el('div', 'abs', s.el, '13:15');
+  clock.style.cssText = 'left:360px;top:200px;transform:translate(-50%,-50%);font:200 168px Inter;letter-spacing:-.04em;color:rgba(255,255,255,.95)';
+  const dt = el('div', 'abs', s.el, 'quarta-feira, 18 de novembro');
+  dt.style.cssText = 'left:360px;top:318px;transform:translate(-50%,-50%);white-space:nowrap;font:600 26px Inter;color:rgba(255,255,255,.8)';
+  s.updates.push(t => { const p = easeOutExpo(prog(t, s.start + 0.05, s.start + 0.6)); clock.style.opacity = dt.style.opacity = p;
+    clock.style.transform = `translate(-50%,-50%) translateY(${(1 - p) * -30}px)`; });
+  const card = el('div', 'abs', s.el, `<div style="display:flex;align-items:center;gap:14px">
+      <div style="width:54px;height:54px;border-radius:14px;background:${LAR};display:flex;align-items:center;justify-content:center"><img src="${tw('26a0')}" style="width:34px"></div>
+      <div style="flex:1"><div style="display:flex;justify-content:space-between;font:700 19px Inter;color:#222"><span>PLANTÃO DE NOTÍCIAS</span><span style="font-weight:500;color:#777">agora</span></div>
+      <div style="font:600 21px/1.25 Inter;color:#111;margin-top:4px">Explosão em caldeira de fábrica<br>de papel em Santa Catarina</div></div></div>`);
+  card.style.cssText = 'left:360px;width:600px;padding:18px 20px;border-radius:26px;background:rgba(245,245,247,.93);box-shadow:0 20px 50px rgba(0,0,0,.5)';
+  bloco(s, 640, [
+    { seq: [11, 13, S(46)] },
+    { seq: [14, 16, S(46, { text: { 14: '18' } }), { 14: { font: FONTS.caps(64), color: AMA } }], },
+    { line: [[['por volta das', ws(17) - 0.04], ['13h15', ws(20) - 0.04, { font: FONTS.caps(64), color: AMA }]], {}] },
+    { gap: 14 },
+    { el: card, h: 128 },
+  ], { lh: 1.34 });
+  s.updates.push(t => { const p = pop(t, ws(21), 0.45); card.style.opacity = t > ws(21) ? 1 : 0;
+    card.style.transform = `translate(-50%,-50%) translateY(${(1 - Math.min(p, 1)) * -120}px) scale(${0.9 + 0.1 * p})`; });
+  sai(s, 'zoom', 0.22);
+}
+
+/* ===== Cena 3 — dentro da notificação: a fábrica (foto real) ===== */
+{
+  const s = scene(C3, C4, '#f4f4f2', 0.01);
+  entra(s, 'zoom');
+  const ph = el('div', 'abs', s.el); ph.dataset.evitar = 'foto';
+  ph.style.cssText = 'left:40px;top:96px;width:640px;height:470px;border-radius:28px;overflow:hidden;box-shadow:0 18px 40px rgba(0,0,0,.25)';
+  const im = el('img', 'abs', ph); im.src = A + 'portaria.jpg'; im.style.cssText = 'left:0;top:-60px;width:640px;height:853px;object-fit:cover';
+  s.updates.push(t => { const p = prog(t, s.start, s.end); im.style.transform = `scale(${lerp(1.0, 1.12, p)})`; });
+  const pin = el('div', 'abs', ph, `<img src="${tw('1f4cd')}" style="width:40px;vertical-align:middle"> <span>OTACÍLIO COSTA · SC</span>`);
+  pin.style.cssText = 'left:22px;top:22px;white-space:nowrap;font:800 20px Inter;color:#111;background:#fff;border-radius:40px;padding:4px 16px 4px 6px';
+  s.updates.push(t => { const p = pop(t, ws(28), 0.4); pin.style.transform = `scale(${p})`; pin.style.opacity = p > 0 ? 1 : 0; });
+  credito(s, 'Foto: Reprodução/Redes Sociais via ND Mais', { x: 56, y: 524 });
+  const D = { color: '#121212', from: '#d6d6d6' };
+  const bk = bloco(s, 712, [
+    { line: [[['KLABIN', ws(26) - 0.04]], { font: FONTS.caps(112), color: '#00804a', from: '#cfe8da' }] },
+    { seq: [27, 29, { font: FONTS.sans(46, 800), ...D }] },
+    { seq: [30, 34, { font: FONTS.sans(38, 600), ...D }] },
+  ]);
+  const sub = el('div', 'abs', s.el); sub.style.cssText = `left:360px;top:${parseFloat(bk[2].L.style.top) + 30}px;height:8px;width:0;background:${LAR};border-radius:4px;transform:translateX(-50%)`;
+  s.updates.push(t => { sub.style.width = 420 * easeOutExpo(prog(t, ws(33), ws(34) + 0.4)) + 'px'; });
+  sai(s, 'whip', 0.16);
+}
+
+/* ===== Cena 4 — HUD técnico: a caldeira CR-04 (objeto-herói) ===== */
+{
+  const s = scene(C4, C5, 'radial-gradient(ellipse at 50% 35%, #2a2d30 0%, #0d0f10 75%)', 0.012);
+  entra(s, 'whip');
+  const grid = shade(s, 'background-image:linear-gradient(rgba(255,255,255,.05) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.05) 1px,transparent 1px);background-size:40px 40px');
+  const ph = el('div', 'abs', s.el); ph.dataset.evitar = 'foto';
+  ph.style.cssText = 'left:150px;top:96px;width:420px;height:520px;overflow:hidden;border:2px solid rgba(255,255,255,.5)';
+  const im = el('img', 'abs', ph); im.src = A + 'torre.jpg'; im.style.cssText = 'left:0;top:0;width:420px;height:560px;object-fit:cover;filter:grayscale(1) contrast(1.25) brightness(.95)';
+  const scan = el('div', 'abs', ph); scan.style.cssText = `left:0;width:420px;height:3px;background:${LAR};box-shadow:0 0 18px ${LAR}`;
+  s.updates.push(t => { const p = prog(t, s.start, s.end); im.style.transform = `scale(${lerp(1.04, 1.16, p)})`; scan.style.top = (520 * ((t - s.start) * 0.55 % 1)) + 'px'; });
+  // callouts
+  const call = (txt, x, y, lx, ly, t0, alinha) => {
+    const d = el('div', 'abs', s.el); d.innerHTML = `<svg width="720" height="1280" style="position:absolute;left:0;top:0;overflow:visible"><path d="M${x} ${y} L${lx} ${ly}" stroke="${LAR}" stroke-width="3" fill="none"/><circle cx="${x}" cy="${y}" r="7" fill="${LAR}"/></svg>`;
+    d.style.cssText = 'left:0;top:0;width:720px;height:1280px';
+    const lab = el('div', 'abs', s.el, txt); lab.style.cssText = `top:${ly}px;${alinha === 'r' ? `right:${720 - lx}px` : `left:${lx}px`};transform:translateY(-100%);white-space:nowrap;font:800 22px Inter;color:#fff;letter-spacing:.1em;padding-bottom:6px;border-bottom:3px solid ${LAR}`;
+    const pth = d.querySelector('path'), L = Math.hypot(lx - x, ly - y); pth.style.strokeDasharray = L;
+    s.updates.push(t => { const p = easeOutExpo(prog(t, t0, t0 + 0.4)); pth.style.strokeDashoffset = L * (1 - p); d.style.opacity = p > 0 ? 1 : 0;
+      lab.style.opacity = prog(t, t0 + 0.2, t0 + 0.4); lab.style.clipPath = `inset(0 ${100 - 100 * easeOutExpo(prog(t, t0 + 0.2, t0 + 0.6))}% 0 0)`; });
+  };
+  call('CR-04', 470, 260, 592, 200, ws(40), 'l');
+  call('DANOS', 250, 440, 140, 400, ws(37), 'r');
+  hud(s, { topo: '', lado: 'CALDEIRA DE RECUPERAÇÃO · CR-04' });
+  bloco(s, 800, [
+    { seq: [35, 39, S(42)] },
+    { seq: [40, 40, { font: FONTS.caps(124), color: LAR, text: { 40: 'CALDEIRA' }, glow: 'rgba(255,90,31,.4)', from: '#3a1206' }] },
+    { seq: [41, 42, S(44)] },
+  ]);
+  sai(s, 'whip', 0.16);
+}
+
+/* ===== Cena 5 — lousa a giz: como funciona a caldeira ===== */
+{
+  const s = scene(C5, C6, '#1d2a22', 0.008);
+  bg(s, A + 'lousa.jpg', { z0: 1.06, z1: 1.14, origin: '50% 40%' });
+  entra(s, 'drop');
+  const G = (n, o = {}) => ({ font: FONTS.hand(n), color: '#f4f3ea', from: '#4f6a58', glow: 'rgba(255,255,255,.18)', ...o });
+  const tit = el('div', 'abs', s.el, 'COMO FUNCIONA'); tit.style.cssText = 'left:360px;top:250px;transform:translate(-50%,-50%);white-space:nowrap;font:700 40px Hand;color:rgba(244,243,234,.75);letter-spacing:.12em;border-bottom:3px solid rgba(244,243,234,.6);filter:url(#rough)';
+  const out = ws(54) - 0.1;
+  bloco(s, 470, [
+    { seq: [43, 47, G(62, { outAt: out }), { 46: { color: AMA }, 47: { color: AMA } }] },
+    { seq: [48, 50, G(56, { outAt: out })] },
+    { seq: [51, 53, G(56, { outAt: out }), { 53: { color: '#ffd9a0' } }] },
+  ]);
+  bloco(s, 470, [
+    { seq: [54, 58, G(60), { 56: { color: '#9fe3ff' }, 58: { color: '#9fe3ff' } }] },
+    { seq: [59, 62, G(60)] },
+  ]);
+  // diagrama a giz: licor preto → caldeira → vapor/energia
+  const no = (html, x, t0) => { const d = el('div', 'abs', s.el, html); d.dataset.evitar = 'diagrama';
+    d.style.cssText = `left:${x}px;top:770px;width:180px;height:150px;border:4px solid rgba(244,243,234,.85);border-radius:18px;filter:url(#rough);display:flex;flex-direction:column;align-items:center;justify-content:center;font:700 30px/1.05 Hand;color:#f4f3ea;text-align:center`;
+    s.updates.push(t => { const p = pop(t, t0, 0.4); d.style.opacity = t > t0 ? 1 : 0; d.style.transform = `translate(-50%,-50%) scale(${p}) rotate(${(1 - Math.min(p, 1)) * -8}deg)`; }); return d; };
+  no(`<img src="${tw('1fab5')}" style="width:52px;filter:grayscale(1) brightness(2.2)"><span>licor<br>preto</span>`, 130, ws(46));
+  no(`<img src="${tw('1f525')}" style="width:52px;filter:grayscale(.3)"><span>caldeira</span>`, 360, ws(44));
+  no(`<img src="${tw('26a1')}" style="width:52px"><span>vapor +<br>energia</span>`, 590, ws(56));
+  const arr = (x1, x2, t0) => { const d = el('div', 'abs', s.el, `<svg width="720" height="1280" style="overflow:visible"><path d="M${x1} 770 L${x2} 770 M${x2 - 14} 758 L${x2} 770 L${x2 - 14} 782" stroke="#f4f3ea" stroke-width="4" fill="none" stroke-linecap="round"/></svg>`);
+    d.style.cssText = 'left:0;top:0;filter:url(#rough)'; const p = d.querySelector('path'); const L = (x2 - x1) + 40; p.style.strokeDasharray = L;
+    s.updates.push(t => { p.style.strokeDashoffset = L * (1 - easeOut(prog(t, t0, t0 + 0.45))); }); };
+  arr(226, 264, ws(49)); arr(456, 494, ws(57));
+  sai(s, 'whip', 0.16);
+}
+
+/* ===== Cena 6 — visor REC com os vídeos reais: nuvem, fuligem, licor ===== */
+const visor = (ini, fim, nome, rows, o = {}) => {
+  const s = scene(ini, fim, '#000', 0.01);
+  clip(s, nome, { z0: o.z0 ?? 1.12, z1: o.z1 ?? 1.0, filter: o.filter || 'contrast(1.12) saturate(.9)', skip: o.skip || 0 });
+  faixaLeitura(s, 470, 820, 0.6);
+  rec(s, C6);
+  bloco(s, 640, rows);
+  credito(s, o.cred || 'Vídeo: Reprodução/Redes Sociais via ND Mais');
+  entra(s, o.entra || 'whip', 0.2);
+  return s;
+};
+visor(C6, C6b, 'predio', [
+  { seq: [63, 65, S(48)] },
+  { seq: [66, 68, S(48), { 67: { color: AMA } }] },
+  { seq: [69, 71, S(48)] },
+], { entra: 'zoom' });
+{
+  const s = visor(C6b, C6c, 'torre', [
+    { seq: [72, 75, S(48)] },
+    { seq: [76, 76, { font: FONTS.caps(124), color: '#d9d9d9', text: { 76: 'FULIGEM' }, from: '#222' }] },
+  ]);
+  // partículas de fuligem caindo
+  const box = el('div', 'abs', s.el); box.style.cssText = 'inset:0;pointer-events:none';
+  const ps = [...Array(46)].map((_, i) => { const d = el('div', 'abs', box); const r = 3 + (i * 37 % 7); d.style.cssText = `width:${r}px;height:${r}px;border-radius:50%;background:rgba(20,20,20,.85)`; return { d, x: (i * 157) % 720, v: 160 + (i * 53) % 220, o: (i * 0.37) % 1 }; });
+  s.updates.push(t => ps.forEach(p => { const y = ((t - s.start + p.o * 4) * p.v) % 1300 - 20; p.d.style.transform = `translate(${p.x + Math.sin(t * 2 + p.o * 6) * 20}px, ${y}px)`; }));
+}
+{
+  const s = visor(C6c, C7, 'licor', [
+    { seq: [77, 80, S(48), { 79: { color: LAR } }] },
+    { seq: [81, 83, S(48)] },
+    { seq: [84, 85, S(48)] },
+    { seq: [86, 86, { font: FONTS.caps(124), color: LAR, text: { 86: 'PELE' }, glow: 'rgba(255,90,31,.5)', from: '#3a1206' }] },
+  ], { filter: 'contrast(1.15) saturate(.85)' });
+  const tag = el('div', 'abs', s.el, `<img src="${tw('2623')}" style="width:30px;vertical-align:middle"> CORROSIVO`);
+  tag.style.cssText = `left:60px;top:300px;white-space:nowrap;font:900 26px Inter;color:#111;background:${AMA};padding:6px 14px;border:4px solid #111;letter-spacing:.08em`;
+  s.updates.push(t => { const p = pop(t, ws(84), 0.35); tag.style.transform = `scale(${p}) rotate(-6deg)`; tag.style.opacity = p > 0 ? 1 : 0; });
+}
+
+/* ===== Cena 7 — vídeo real: funcionários correndo ===== */
+{
+  const s = scene(C7, C8, '#000', 0.01);
+  clip(s, 'fuga', { z0: 1.08, z1: 1.0, filter: 'contrast(1.1) saturate(.85)' });
+  faixaLeitura(s, 470, 810, 0.55);
+  rec(s, C6);
+  entra(s, 'whip', 0.18);
+  bloco(s, 640, [
+    { seq: [87, 87, { font: FONTS.caps(96), color: BR, text: { 87: 'FUNCIONÁRIOS' } }] },
+    { seq: [88, 90, S(48), { 90: { color: AMA } }] },
+    { seq: [91, 92, S(48)] },
+  ]);
+  s.updates.push(t => { s.el.style.transform += ` translate(${Math.sin(t * 23) * 5}px, ${Math.cos(t * 19) * 4}px) rotate(${Math.sin(t * 7) * 0.5}deg)`; });
+  credito(s, 'Vídeo: Reprodução/Redes Sociais via Jornal Razão');
+}
+
+/* ===== Cena 8 — holofote: contador 0 → 11 + sirene ===== */
+{
+  const s = scene(C8, C9, '#0b1c1d', 0.015);
+  bg(s, A + 'spot.jpg', { z0: 1.15, z1: 1.04, origin: '50% 20%' });
+  entra(s, 'drop', 0.24);
+  const sir = shade(s, 'mix-blend-mode:screen');
+  s.updates.push(t => { const a = (Math.sin(t * 9) + 1) / 2;
+    sir.style.background = `radial-gradient(circle at 0% 30%, rgba(255,30,30,${0.35 * a}), transparent 55%), radial-gradient(circle at 100% 30%, rgba(40,90,255,${0.35 * (1 - a)}), transparent 55%)`; });
+  const num = el('div', 'abs', s.el); num.dataset.evitar = 'contador';
+  num.style.cssText = `left:360px;font:400 290px/1 Anton;color:${AMA};text-shadow:0 0 40px rgba(255,196,0,.35)`;
+  s.updates.push(t => { const p = prog(t, ws(93), we(93) + 0.35); num.textContent = Math.round(11 * easeOut(p)); num.style.opacity = t > ws(93) - 0.05 ? 1 : 0;
+    num.style.transform = `translate(-50%,-50%) scale(${1 + 0.08 * Math.sin(p * Math.PI)})`; });
+  bloco(s, 640, [
+    { el: num, h: 300 },
+    { seq: [94, 96, S(46)] },
+    { seq: [97, 98, S(46), { 98: { color: '#ff4d4d' } }] },
+  ]);
+  const cr = el('div', 'abs', s.el, 'Fontes: PM, Corpo de Bombeiros e Hospital Santa Clara');
+  cr.style.cssText = 'left:40px;top:1196px;white-space:nowrap;font:600 15px Inter;color:rgba(255,255,255,.8)';
+}
+
+/* ===== Cena 9 — boletim: o ferido mais grave (checklist) ===== */
+{
+  const s = scene(C9, C10, 'linear-gradient(180deg,#dfe8ee,#c9d6df)', 0.01);
+  entra(s, 'whip');
+  const card = el('div', 'abs', s.el); card.dataset.evitar = 'boletim';
+  const itens = [['Fratura exposta', 107], ['Queimaduras', 110], ['Intubado', 112], ['Transferido para Lages', 114]];
+  card.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center;border-bottom:3px solid #1b2a33;padding-bottom:10px;margin-bottom:8px">
+      <span style="font:900 22px Inter;color:#1b2a33;letter-spacing:.12em">BOLETIM MÉDICO</span><span style="font:700 16px Inter;color:#5a6b75">resumo · 18/11</span></div>` +
+    itens.map(([txt], i) => `<div class="it" style="display:flex;align-items:center;gap:16px;height:62px;border-bottom:1px dashed #b8c4cc">
+      <svg width="36" height="36"><rect x="2" y="2" width="32" height="32" rx="6" fill="none" stroke="#1b2a33" stroke-width="3"/><path class="ck" d="M8 19 L15 26 L29 10" stroke="${i < 2 ? '#d62828' : '#d62828'}" stroke-width="5" fill="none" stroke-linecap="round"/></svg>
+      <span style="font:700 28px Inter;color:#1b2a33">${txt}</span></div>`).join('') +
+    `<div style="font:600 14px Inter;color:#5a6b75;margin-top:10px">Fonte: nota do Hospital Santa Clara (Otacílio Costa)</div>`;
+  card.style.cssText = 'left:360px;width:540px;padding:22px 26px;background:#fbfbf8;border-radius:16px;box-shadow:0 22px 50px rgba(20,40,60,.3)';
+  const its = [...card.querySelectorAll('.it')], cks = [...card.querySelectorAll('.ck')];
+  cks.forEach(c => { c.style.strokeDasharray = 40; });
+  s.updates.push(t => {
+    const p = easeOutExpo(prog(t, s.start + 0.1, s.start + 0.5)); card.style.transform = `translate(-50%,-50%) rotate(${lerp(4, -1.5, p)}deg) translateY(${(1 - p) * 300}px)`;
+    itens.forEach(([, i], k) => { const q = prog(t, ws(i), ws(i) + 0.3); cks[k].style.strokeDashoffset = 40 * (1 - easeOut(q)); its[k].style.opacity = t > ws(i) - 0.05 ? 1 : 0.28; });
+  });
+  bloco(s, 640, [
+    { line: [[['Um homem', ws(99) - 0.04], ['de 47 anos', ws(101) - 0.04, { color: '#d62828' }]], { font: FONTS.sans(50, 800), color: '#13212a', from: '#b9c6cf' }] },
+    { gap: 12 },
+    { el: card, h: 400 },
+  ]);
+}
+
+/* ===== Cena 10 — jornal: fábrica evacuada ===== */
+{
+  const s = scene(C10, C11, '#d9cba8', 0.012);
+  bg(s, A + 'jornal.jpg', { z0: 1.05, z1: 1.12 });
+  entra(s, 'whip');
+  const mast = el('div', 'abs', s.el, `<div style="font:900 64px/1 Play;font-style:normal;color:#1a1612;letter-spacing:-.01em">EDIÇÃO EXTRA</div>
+    <div style="display:flex;justify-content:space-between;border-top:3px solid #1a1612;border-bottom:1px solid #1a1612;margin-top:8px;padding:4px 0;font:700 14px Inter;color:#1a1612;letter-spacing:.1em"><span>SERRA CATARINENSE</span><span>18 DE NOVEMBRO DE 2026</span></div>`);
+  mast.style.cssText = 'left:50px;top:60px;width:620px;text-align:center';
+  const ph = el('div', 'abs', s.el); ph.dataset.evitar = 'foto';
+  ph.style.cssText = 'left:50px;top:190px;width:620px;height:360px;overflow:hidden;border:2px solid #1a1612';
+  const im = el('img', 'abs', ph); im.src = A + 'rua.jpg'; im.style.cssText = 'left:0;top:-180px;width:620px;height:827px;object-fit:cover;filter:grayscale(1) contrast(1.35) sepia(.25)';
+  el('div', 'ht', ph);
+  s.updates.push(t => { im.style.transform = `scale(${lerp(1.0, 1.1, prog(t, s.start, s.end))})`; });
+  credito(s, 'Foto: Reprodução/Redes Sociais via ND Mais', { x: 60, y: 516 });
+  const st = el('div', 'abs', ph, 'ÁREA ISOLADA');
+  st.style.cssText = 'left:420px;top:90px;white-space:nowrap;font:400 46px Anton;color:#c1121f;border:6px solid #c1121f;padding:0 16px;filter:url(#rough);background:rgba(255,255,255,.12)';
+  s.updates.push(t => { const q = prog(t, ws(131), ws(131) + 0.18); st.style.opacity = q > 0 ? 0.92 : 0; st.style.transform = `translate(-50%,-50%) rotate(-9deg) scale(${q > 0 ? lerp(2.4, 1, easeOutExpo(q)) : 0})`; });
+  const J = (n, o = {}) => ({ font: FONTS.dms(n), color: '#1a1612', from: '#c9b98f', ...o }), out = ws(124) - 0.1;
+  bloco(s, 790, [
+    { seq: [117, 119, J(54, { outAt: out })] },
+    { seq: [120, 120, { font: FONTS.caps(118), color: '#1a1612', from: '#c9b98f', text: { 120: 'EVACUADA' }, outAt: out }] },
+    { seq: [121, 123, J(46, { outAt: out })] },
+  ]);
+  bloco(s, 790, [
+    { seq: [124, 127, J(50)] },
+    { seq: [128, 130, J(60), { 130: { color: '#c1121f' } }] },
+    { seq: [131, 133, J(50)] },
+    { seq: [134, 135, J(50)] },
+  ]);
+  sai(s, 'whip', 0.16);
+}
+
+/* ===== Cena 11 — destroços (vídeo real) + fita de isolamento ===== */
+{
+  const s = scene(C11, C12, '#000', 0.01);
+  clip(s, 'destrocos', { z0: 1.1, z1: 1.0, filter: 'contrast(1.1) saturate(.8) brightness(.95)' });
+  faixaLeitura(s, 470, 820, 0.62);
+  entra(s, 'whip');
+  const fita = el('div', 'abs', s.el); fita.style.cssText = `left:-100px;top:250px;width:920px;height:64px;background:${AMA};transform:rotate(-7deg);overflow:hidden;box-shadow:0 8px 20px rgba(0,0,0,.5)`;
+  const ft = el('div', 'abs', fita, ('PERÍCIA EM ANDAMENTO &nbsp;■&nbsp; NÃO ULTRAPASSE &nbsp;■&nbsp; ').repeat(6));
+  ft.style.cssText = 'top:12px;left:0;white-space:nowrap;font:900 32px Inter;color:#111;letter-spacing:.04em';
+  s.updates.push(t => { const p = easeOutExpo(prog(t, s.start + 0.1, s.start + 0.5)); fita.style.clipPath = `inset(0 ${100 - p * 100}% 0 0)`; ft.style.transform = `translateX(${-(t - s.start) * 120}px)`; });
+  const out = ws(143) - 0.1;
+  bloco(s, 640, [
+    { seq: [136, 137, S(46, { outAt: out })] },
+    { seq: [138, 139, { font: FONTS.caps(110), color: VERDE, text: { 138: '10', 139: 'FERIDOS' }, outAt: out, from: '#0a2a18' }, { 139: { color: BR } }] },
+    { seq: [140, 142, S(46, { outAt: out }), { 142: { color: VERDE } }] },
+  ]);
+  bloco(s, 640, [
+    { seq: [143, 146, S(48)] },
+    { seq: [147, 147, { font: FONTS.caps(110), color: AMA, text: { 147: 'INVESTIGADA' }, from: '#3a2d00' }] },
+  ]);
+  credito(s, 'Vídeo: Reprodução/Redes Sociais via Jornal Razão');
+  sai(s, 'zoom', 0.2);
+}
+
+/* ===== Cena 12 — CTA: barra de busca + enquete ===== */
+{
+  const s = scene(C12, DUR, 'linear-gradient(180deg,#f3f7fc,#dde7f3)', 0.008);
+  entra(s, 'zoom');
+  const bar = el('div', 'abs', s.el, `<svg width="30" height="30" style="flex:none"><circle cx="12" cy="12" r="9" stroke="#555" stroke-width="3" fill="none"/><path d="M19 19 L27 27" stroke="#555" stroke-width="3"/></svg><span class="q"></span><span class="cur" style="width:2px;height:30px;background:#1a73e8"></span>`);
+  bar.style.cssText = 'left:60px;top:180px;width:600px;height:76px;border-radius:40px;background:#fff;box-shadow:0 10px 30px rgba(30,60,100,.18);display:flex;align-items:center;gap:14px;padding:0 26px;font:500 27px Inter;color:#222;white-space:nowrap;overflow:hidden';
+  const q = bar.querySelector('.q'), cur = bar.querySelector('.cur');
+  const ty = { at: t => { const txt = 'causa explosão caldeira Klabin'; const n = Math.floor(clamp((t - (C12 + 0.2)) * 20, 0, txt.length)); q.textContent = txt.slice(0, n); } };
+  s.updates.push(t => { ty.at(t); cur.style.opacity = Math.floor(t * 3) % 2 ? 0 : 1; });
+  const out = ws(158) - 0.1, D = { color: '#14202b', from: '#c7d2dd' };
+  bloco(s, 640, [
+    { seq: [148, 149, { font: FONTS.sans(56, 800), ...D, outAt: out }] },
+    { seq: [150, 152, { font: FONTS.sans(46, 600), ...D, outAt: out }] },
+    { seq: [153, 153, { font: FONTS.caps(100), color: LAR, from: '#ffd9c8', text: { 153: 'FISCALIZAÇÃO' }, outAt: out }] },
+    { seq: [154, 155, { font: FONTS.sans(46, 600), ...D, outAt: out }] },
+    { seq: [156, 157, { font: FONTS.sans(46, 800), ...D, outAt: out }] },
+  ]);
+  const poll = el('div', 'abs', s.el, `<div style="font:800 22px Inter;color:#14202b;text-align:center;margin-bottom:14px;letter-spacing:.1em">A FISCALIZAÇÃO É SUFICIENTE?</div>
+    <div style="height:64px;border-radius:16px;background:#eef2f6;margin-bottom:10px;font:800 28px/64px Inter;padding-left:22px;color:#14202b">SIM</div>
+    <div style="height:64px;border-radius:16px;background:#eef2f6;font:800 28px/64px Inter;padding-left:22px;color:#14202b">NÃO</div>
+    <div style="margin-top:14px;height:54px;border-radius:30px;border:2px solid #c7d2dd;font:500 22px/50px Inter;padding-left:20px;color:#7a8794">Escreva sua opinião… 💬</div>`);
+  poll.style.cssText = 'left:360px;width:470px;padding:22px;background:#fff;border-radius:24px;box-shadow:0 20px 50px rgba(30,60,100,.25)';
+  bloco(s, 640, [
+    { seq: [158, 159, { font: FONTS.serif(84), color: '#14202b', from: '#c7d2dd' }] },
+    { gap: 16 },
+    { el: poll, h: 330 },
+  ]);
+  const cursor = el('div', 'abs', s.el, `<svg width="40" height="48"><path d="M4 2 L4 38 L14 29 L21 45 L28 42 L21 27 L35 27 Z" fill="#111" stroke="#fff" stroke-width="2.5"/></svg>`);
+  s.updates.push(t => { const p = pop(t, we(159) + 0.15, 0.45); poll.style.opacity = t > we(159) + 0.15 ? 1 : 0; poll.style.transform = `translate(-50%,-50%) scale(${p}) rotate(-1.5deg)`;
+    const c = easeInOut(prog(t, we(159) + 0.6, we(159) + 1.3)); const top = parseFloat(poll.style.top) || 700;
+    cursor.style.opacity = t > we(159) + 0.6 ? 1 : 0; cursor.style.transform = `translate(${lerp(640, 470, c)}px, ${lerp(1180, top + 120, c)}px) scale(${t > we(159) + 1.35 && t < we(159) + 1.5 ? 0.85 : 1})`; });
+  cursor.style.cssText += ';left:0;top:0';
+}
+
+const _lc = window.layoutCheck; window.layoutCheck = o => { window.CHK = 1; const r = _lc(o); window.CHK = 0; return r; };
+finalize({ duration: DUR, grain: 0.07, vignette: 0.45,
+  flashes: [[C4, 0.12], [C6, 0.14], [C7, 0.1, '255,90,31'], [C8, 0.12], [C10, 0.12], [C11, 0.12]],
+  preload: [] });
+</script>
+</body></html>

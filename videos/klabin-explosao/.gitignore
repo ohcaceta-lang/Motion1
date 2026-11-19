@@ -1,0 +1,6 @@
+node_modules/
+package-lock.json
+mudo.mp4
+mix.wav
+mix_final.wav
+assets/voz_edit_tmp.wav
