@@ -1,0 +1,6 @@
+node_modules/
+__pycache__/
+*.wav
+package.json
+package-lock.json
+assets/foto_marinho.png
