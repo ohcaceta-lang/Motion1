@@ -1,0 +1,310 @@
+<!doctype html>
+<html><head><meta charset="utf-8"></head>
+<body>
+<script src="assets/words.js"></script>
+<script src="lib.js"></script>
+<script>
+/* Lula assina o decreto do fim da escala 6x1 — estilo "branding-why-storytelling" (um mundo por frase). */
+const A = 'assets/';
+const N = window.WORDS.length - 1;
+const AMA = '#ffd23f', VERM = '#ff3b30', AZUL = '#2f6bff', GIZ = '#f3f1e7', GIZA = '#ffe7a3';
+const cut = i => ws(i) - 0.12;
+const C1 = 0, C2 = cut(7), C3 = cut(16), C4 = cut(25), C5 = cut(42), C6 = cut(56), C7 = cut(65), C8 = cut(72), C9 = cut(91), C10 = cut(99);
+const DUR = Math.ceil((we(N) + 2.0) * 10) / 10;
+const S = (px, w = 600) => FONTS.sans(px, w);
+
+/* ---------- utilitários de cena ---------- */
+function credit(s, txt, cor = 'rgba(255,255,255,.85)') {
+  const c = el('div', 'abs', s.el, txt);
+  c.style.cssText = `right:26px;bottom:24px;font:500 16px Inter;color:${cor};white-space:nowrap;text-shadow:0 1px 3px rgba(0,0,0,.6)`;
+}
+function micro(s, cor = 'rgba(255,255,255,.55)') {               // microtipografia de HUD nas bordas
+  const a = el('div', 'abs', s.el, 'DECRETO · 19.11.2026'); a.style.cssText = `left:34px;top:34px;font:600 14px Inter;letter-spacing:.22em;color:${cor};white-space:nowrap`;
+  const b = el('div', 'abs', s.el, 'ESCALA 6X1 → 5X2 · BRASIL'); b.style.cssText = `right:22px;top:640px;font:600 13px Inter;letter-spacing:.3em;color:${cor};white-space:nowrap;transform:translate(50%,-50%) rotate(90deg);transform-origin:50% 50%`;
+}
+function hud(s, cor = 'rgba(255,255,255,.7)', t0 = s.start) {   // cantoneiras + régua que se desenham
+  const cs = [[24, 24, '1 0 0 1'], [696, 24, '1 1 0 0'], [24, 1256, '0 0 1 1'], [696, 1256, '0 1 1 0']];
+  cs.forEach(([x, y], k) => {
+    const c = el('div', 'abs', s.el);
+    const bt = k < 2 ? 'top' : 'bottom', sd = k % 2 ? 'right' : 'left';
+    c.style.cssText = `width:46px;height:46px;border-${bt}:3px solid ${cor};border-${sd}:3px solid ${cor};left:${sd === 'left' ? x : x - 46}px;top:${bt === 'top' ? y : y - 46}px`;
+    s.updates.push(t => { const p = easeOutExpo(prog(t, t0 + k * 0.05, t0 + 0.35 + k * 0.05)); c.style.opacity = p; c.style.transform = `scale(${lerp(1.6, 1, p)})`; });
+  });
+  const r = el('div', 'abs', s.el); r.style.cssText = `left:34px;top:300px;width:14px;height:680px;background:repeating-linear-gradient(180deg, ${cor} 0 2px, transparent 2px 17px);opacity:.5;transform-origin:50% 0`;
+  s.updates.push(t => { r.style.transform = `scaleY(${easeOutExpo(prog(t, t0 + 0.1, t0 + 0.8))})`; });
+}
+function fadeIn(e, t0, d = 0.3, dy = 30, extra = '') {
+  return t => { const p = easeOutExpo(prog(t, t0, t0 + d)); e.style.opacity = p; e.style.transform = `translate(-50%,-50%) translateY(${(1 - p) * dy}px) ${extra}`; };
+}
+function stamp(s, txt, x, y, t0, rot = -7, size = 46, col = VERM) {
+  const st = el('div', 'abs', s.el, txt);
+  st.style.cssText = `left:${x}px;top:${y}px;white-space:nowrap;font:400 ${size}px Anton;letter-spacing:.04em;color:${col};border:5px solid ${col};padding:2px 20px;filter:url(#rough);opacity:0`;
+  st.setAttribute('data-evitar', 'carimbo');
+  s.updates.push(t => { const q = prog(t, t0, t0 + 0.18); st.style.opacity = t >= t0 ? 0.95 : 0;
+    st.style.transform = `translate(-50%,-50%) rotate(${rot}deg) scale(${t >= t0 ? lerp(2.2, 1, easeOutExpo(q)) : 0})`; });
+  return st;
+}
+
+/* 1 — HUD técnico: foto real com callouts (É oficial: o Lula assinou) */
+{
+  const s = scene(C1, C2, '#1b1d20', 0.012);
+  bg(s, A + 'hud.jpg', { z0: 1.1, z1: 1.0, filter: 'brightness(.75)' });
+  hud(s); micro(s);
+  const card = el('div', 'abs', s.el, `<img src="${A}foto_assina.jpg" style="width:100%;height:100%;object-fit:cover;filter:saturate(.85) contrast(1.05)">`);
+  card.style.cssText = 'left:360px;top:330px;width:600px;height:338px;border:3px solid rgba(255,255,255,.85);box-shadow:0 30px 60px rgba(0,0,0,.6);overflow:hidden';
+  card.setAttribute('data-evitar', 'foto');
+  s.updates.push(t => { const p = easeOutExpo(prog(t, 0.0, 0.7)); card.style.opacity = clamp(p * 2);
+    card.style.transform = `translate(-50%,-50%) perspective(900px) rotateX(${(1 - p) * 35}deg) rotateZ(${(1 - p) * -6}deg) scale(${lerp(0.75, 1, p)})`; });
+  // callouts (diagrama técnico): documento e presidente
+  const svg = el('div', 'abs', s.el, `<svg width="720" height="1280" style="position:absolute;left:0;top:0;overflow:visible">
+    <path id="c1" d="M354 372 L354 560 L520 560" fill="none" stroke="#ffd23f" stroke-width="3"/>
+    <circle id="d1" cx="354" cy="372" r="9" fill="none" stroke="#ffd23f" stroke-width="3"/>
+    <path id="c2" d="M352 172 L352 132 L120 132" fill="none" stroke="#ffffff" stroke-width="3"/>
+    <circle id="d2" cx="352" cy="172" r="9" fill="none" stroke="#ffffff" stroke-width="3"/></svg>`);
+  svg.style.cssText = 'left:0;top:0;width:720px;height:1280px';
+  const lbl1 = el('div', 'abs', s.el, 'DECRETO'); lbl1.style.cssText = `left:528px;top:560px;font:400 34px Anton;letter-spacing:.06em;color:#111;background:${AMA};padding:2px 14px;white-space:nowrap;opacity:0`;
+  const lbl2 = el('div', 'abs', s.el, 'LULA'); lbl2.style.cssText = 'left:112px;top:132px;font:400 34px Anton;letter-spacing:.06em;color:#111;background:#ffffff;padding:2px 14px;white-space:nowrap;opacity:0';
+  [lbl1, lbl2].forEach(l => l.setAttribute('data-evitar', 'etiqueta'));
+  s.updates.push(t => {
+    const draw = (id, t0) => { const p = svg.querySelector('#' + id), L = p.getTotalLength(); p.style.strokeDasharray = L; p.style.strokeDashoffset = L * (1 - easeOut(prog(t, t0, t0 + 0.45))); };
+    draw('c2', ws(3)); draw('c1', ws(6));
+    svg.querySelector('#d2').style.opacity = t >= ws(3) ? 1 : 0; svg.querySelector('#d1').style.opacity = t >= ws(6) ? 1 : 0;
+    const p2 = pop(t, ws(3) + 0.4), p1 = pop(t, ws(6) + 0.4);
+    lbl2.style.opacity = p2 > 0 ? 1 : 0; lbl2.style.transform = `translate(-100%,-50%) scale(${p2})`;
+    lbl1.style.opacity = p1 > 0 ? 1 : 0; lbl1.style.transform = `translate(0,-50%) scale(${p1})`;
+  });
+  bloco(s, 800, [
+    { seq: [0, 1, { font: S(48, 500), color: '#d9dde3' }] },
+    { seq: [2, 4, { font: S(64, 800) }, { 3: { font: FONTS.caps(96), color: AMA, from: '#3a3000' } }] },
+    { seq: [5, 6, { font: S(64, 800) }] },
+  ]);
+  credit(s, 'Foto: Canal Gov / Reprodução g1');
+}
+
+/* 2 — visor de câmera REC: o fim da escala 6x1 (6x1 riscado) */
+{
+  const s = scene(C2, C3, '#0c0d0f', 0.02);
+  bg(s, A + 'hud.jpg', { z0: 1.0, z1: 1.12, filter: 'brightness(.35) contrast(1.2)' });
+  const grid = el('div', 'abs', s.el); grid.style.cssText = 'inset:150px 70px 170px 70px;border:2px solid rgba(255,255,255,.25);background:linear-gradient(90deg,transparent 33.2%,rgba(255,255,255,.18) 33.3%,rgba(255,255,255,.18) 33.6%,transparent 33.7%,transparent 66.4%,rgba(255,255,255,.18) 66.5%,rgba(255,255,255,.18) 66.8%,transparent 66.9%),linear-gradient(180deg,transparent 33.2%,rgba(255,255,255,.18) 33.3%,rgba(255,255,255,.18) 33.5%,transparent 33.6%,transparent 66.4%,rgba(255,255,255,.18) 66.5%,rgba(255,255,255,.18) 66.7%,transparent 66.8%)';
+  const rec = el('div', 'abs', s.el, '<span style="color:#ff3b30">●</span> REC'); rec.style.cssText = 'left:84px;top:100px;font:700 28px Inter;color:#ffffff;letter-spacing:.08em;white-space:nowrap';
+  const tc = el('div', 'abs', s.el, ''); tc.style.cssText = 'right:84px;top:100px;font:600 24px Inter;color:#ffffff;letter-spacing:.08em;white-space:nowrap';
+  const bat = el('div', 'abs', s.el, 'ISO 800 · 4K · 30P'); bat.style.cssText = 'left:84px;bottom:110px;font:600 20px Inter;color:rgba(255,255,255,.75);letter-spacing:.12em;white-space:nowrap';
+  s.updates.push(t => { rec.firstChild.style.opacity = Math.floor(t * 2.5) % 2 ? 0.2 : 1;
+    const e = Math.max(0, t - C2); tc.textContent = `00:00:0${Math.floor(e)}:${String(Math.floor((e % 1) * 30)).padStart(2, '0')}`; });
+  const b = bloco(s, 640, [
+    { seq: [7, 8, { font: S(50, 500), color: '#e6e6e6' }] },
+    { seq: [9, 11, { font: S(50, 500), color: '#e6e6e6' }] },
+    { seq: [12, 12, { font: FONTS.caps(96), color: '#ffffff' }] },
+    { line: [[['6x1', ws(13) - 0.04, { font: FONTS.caps(230), color: VERM, glow: 'rgba(255,59,48,.45)', from: '#3a0b08' }]]] },
+  ]);
+  const strike = el('div', 'abs', s.el); strike.style.cssText = `left:170px;width:380px;height:22px;background:#ffffff;transform-origin:0 50%;box-shadow:0 6px 20px rgba(0,0,0,.6)`;
+  strike.style.top = (parseFloat(b[3].L.style.top) - 11) + 'px';
+  s.updates.push(t => { const p = easeOutExpo(prog(t, ws(15), ws(15) + 0.3)); strike.style.transform = `rotate(-12deg) scaleX(${p})`; strike.style.opacity = p > 0 ? 1 : 0; });
+}
+
+/* 3 — tela de bloqueio + notificação (A assinatura foi nesta quinta, no Planalto) → zoom para dentro */
+{
+  const s = scene(C3, C4, '#3a0f4a', 0.012);
+  bg(s, A + 'wall.jpg', { z0: 1.15, z1: 1.05, filter: 'brightness(.8) saturate(1.1)' });
+  shade(s, 'background:linear-gradient(180deg, rgba(10,0,20,.15), rgba(10,0,20,.55))');
+  const dt = el('div', 'abs', s.el, 'quinta-feira, 19 de novembro'); dt.style.cssText = 'left:360px;top:120px;transform:translate(-50%,-50%);font:600 26px Inter;color:rgba(255,255,255,.9);white-space:nowrap';
+  const ck = el('div', 'abs', s.el, '19/11'); ck.style.cssText = 'left:360px;top:225px;transform:translate(-50%,-50%);font:300 150px/1 Inter;letter-spacing:-.04em;color:#ffffff;white-space:nowrap;text-shadow:0 6px 30px rgba(0,0,0,.25)';
+  const nt = el('div', 'abs', s.el, `<div style="display:flex;align-items:center;gap:18px">
+      <div style="width:64px;height:64px;border-radius:16px;background:#ffffff;display:flex;align-items:center;justify-content:center"><img src="${tw('1f3db')}" style="width:44px"></div>
+      <div style="flex:1"><div style="display:flex;justify-content:space-between;font:700 20px Inter;color:#1b1b1f"><span>DIÁRIO OFICIAL</span><span style="font-weight:500;color:#6b6b75">agora</span></div>
+      <div style="font:500 23px/1.25 Inter;color:#26262b;margin-top:4px">Decreto do fim da 6x1 publicado em edição extra <img src="${tw('270d')}" style="width:24px;vertical-align:-4px"></div></div></div>`);
+  nt.style.cssText = 'left:360px;top:420px;width:600px;padding:20px 22px;border-radius:26px;background:rgba(245,242,250,.88);box-shadow:0 20px 50px rgba(0,0,0,.35);opacity:0';
+  nt.setAttribute('data-evitar', 'notificação');
+  s.updates.push(t => { const p = backOut(prog(t, ws(16), ws(16) + 0.45)); nt.style.opacity = t >= ws(16) ? 1 : 0;
+    nt.style.transform = `translate(-50%,-50%) translateY(${(1 - p) * -140}px) scale(${lerp(0.85, 1, clamp(p))})`; });
+  bloco(s, 720, [
+    { seq: [16, 18, { font: S(50, 600), outAt: C4 - 0.4 }] },
+    { seq: [19, 20, { font: S(50, 600), outAt: C4 - 0.4 }, { 20: { font: FONTS.serif(100), color: AMA, from: '#3a3000' } }] },
+    { seq: [21, 24, { font: S(50, 600), outAt: C4 - 0.4 }, { 24: { font: S(50, 900), color: AMA, from: '#3a3000' } }] },
+  ]);
+  // zoom para dentro da notificação, levando à próxima cena
+  s.el.style.transformOrigin = '360px 420px';
+  s.updates.push(t => { const p = easeIn(prog(t, C4 - 0.4, C4)); if (p > 0) { s.el.style.transform += ` scale(${1 + p * 5})`; s.el.style.filter = `blur(${p * 8}px)`; } });
+}
+
+/* 4 — lousa a giz: 2 dias de descanso por semana, ou 8 folgas por mês, sem corte de salário */
+{
+  const s = scene(C4, C5, '#2a2018', 0.012);
+  bg(s, A + 'lousa.jpg', { z0: 1.18, z1: 1.1, py: -10, filter: 'brightness(.95)' });
+  const outA = ws(33) - 0.12, G = { font: FONTS.hand(66), color: GIZ, from: '#5d6b62' };
+  // semana: 7 dias, os 2 últimos circulados a giz
+  const wk = el('div', 'abs', s.el, ['S', 'T', 'Q', 'Q', 'S', 'S', 'D'].map((d, k) => `<div class="d" style="position:relative;width:52px;font:700 44px Hand;color:${GIZ};text-align:center">${d}<svg width="70" height="70" style="position:absolute;left:-9px;top:-6px;overflow:visible"><ellipse class="r${k}" cx="35" cy="34" rx="31" ry="27" fill="none" stroke="${GIZA}" stroke-width="4" filter="url(#rough)"/></svg></div>`).join(''));
+  wk.style.cssText = 'left:360px;display:flex;gap:16px;opacity:0;white-space:nowrap';
+  bloco(s, 600, [
+    { seq: [25, 26, { ...G, outAt: outA }] },
+    { seq: [27, 28, { ...G, outAt: outA, text: { 27: '2' } }, { 27: { font: FONTS.hand(150), color: GIZA, from: '#5d6b62' }, 28: { font: FONTS.hand(150), color: GIZA, from: '#5d6b62' } }] },
+    { seq: [29, 30, { ...G, outAt: outA }] },
+    { seq: [31, 32, { ...G, outAt: outA }] },
+    { el: wk, h: 80 },
+  ]);
+  s.updates.push(t => {
+    const p = easeOutExpo(prog(t, ws(29), ws(29) + 0.4)), q = prog(t, outA, outA + 0.18);
+    wk.style.opacity = p * (1 - q); wk.style.transform = `translate(-50%,-50%) translateY(${(1 - p) * 20}px)`; wk.style.filter = q ? `blur(${q * 12}px)` : '';
+    [5, 6].forEach((k, j) => { const r = wk.querySelector('.r' + k), L = 190; r.style.strokeDasharray = L; r.style.strokeDashoffset = L * (1 - easeOut(prog(t, ws(31) + j * 0.25, ws(31) + 0.35 + j * 0.25))); });
+    [0, 1, 2, 3, 4].forEach(k => wk.querySelector('.r' + k).style.opacity = 0);
+  });
+  const b = bloco(s, 600, [
+    { seq: [33, 35, { ...G, text: { 34: '8' } }, { 34: { font: FONTS.hand(150), color: GIZA, from: '#5d6b62' }, 35: { font: FONTS.hand(150), color: GIZA, from: '#5d6b62' } }] },
+    { seq: [36, 37, G] },
+    { seq: [38, 39, G] },
+    { seq: [40, 41, G, { 41: { font: FONTS.hand(96), color: GIZA, from: '#5d6b62' } }] },
+  ]);
+  const ul = el('div', 'abs', s.el, `<svg width="300" height="30"><path id="u" d="M6 18 C 80 8, 170 26, 294 12" fill="none" stroke="${GIZA}" stroke-width="6" stroke-linecap="round" filter="url(#rough)"/></svg>`);
+  ul.style.cssText = 'left:290px;width:300px;height:30px';
+  ul.style.top = (parseFloat(b[3].L.style.top) + 44) + 'px';
+  s.updates.push(t => { const p = ul.querySelector('#u'), L = 300; p.style.strokeDasharray = L; p.style.strokeDashoffset = L * (1 - easeOut(prog(t, we(41) - 0.1, we(41) + 0.35))); });
+}
+
+/* 5 — holofote: a partir de 16 de dezembro, jornada cai para 42 horas (contador 44 → 42) */
+{
+  const s = scene(C5, C6, '#0b1a1d', 0.018);
+  bg(s, A + 'spot.jpg', { z0: 1.08, z1: 1.0, filter: 'brightness(.9)' });
+  micro(s);
+  const cnt = el('div', 'abs', s.el, '<span class="n">44</span><span style="font:400 90px Anton;margin-left:8px">h</span>');
+  cnt.style.cssText = 'left:360px;font:400 230px/1 Anton;color:#ffffff;white-space:nowrap;text-shadow:0 0 40px rgba(127,227,212,.35);opacity:0';
+  cnt.setAttribute('data-evitar', 'contador');
+  bloco(s, 640, [
+    { seq: [42, 44, { font: S(46, 500), color: '#cfe3e0' }] },
+    { seq: [45, 47, { font: FONTS.caps(82), color: AMA, from: '#3a3000', text: { 45: '16' } }] },
+    { seq: [48, 51, { font: S(46, 500), color: '#cfe3e0' }] },
+    { el: cnt, h: 250 },
+  ]);
+  s.updates.push(t => {
+    const p = easeOutExpo(prog(t, ws(52) - 0.1, ws(52) + 0.3)); cnt.style.opacity = p;
+    const k = prog(t, ws(52) + 0.1, ws(54) + 0.1); const n = Math.round(44 - 2 * easeInOut(k));
+    cnt.querySelector('.n').textContent = n; cnt.style.color = n === 42 ? AMA : '#ffffff';
+    cnt.style.transform = `translate(-50%,-50%) scale(${lerp(0.7, 1, p) + (n === 42 ? 0.06 * (1 - prog(t, ws(54) + 0.1, ws(54) + 0.5)) : 0)})`;
+  });
+}
+
+/* 6 — céu: em 2027, para 40 (manuscrito) */
+{
+  const s = scene(C6, C7, '#5aa0e8', 0.02);
+  bg(s, A + 'ceu.jpg', { z0: 1.2, z1: 1.05, py: 40, filter: 'saturate(1.1)' });
+  shade(s, 'background:radial-gradient(ellipse at 50% 50%, rgba(0,40,90,.28), rgba(0,40,90,0) 70%)');
+  const sun = el('img', 'abs', s.el); sun.src = tw('2600'); sun.style.cssText = 'left:540px;top:300px;width:110px;opacity:0';
+  s.updates.push(t => { const p = pop(t, ws(57), 0.5); sun.style.opacity = p > 0 ? 1 : 0; sun.style.transform = `translate(-50%,-50%) rotate(${(t - C6) * 30}deg) scale(${p})`; });
+  const H = { font: FONTS.hand(100), color: '#ffffff', from: '#9cc7f2', glow: 'rgba(0,40,90,.35)' };
+  bloco(s, 620, [
+    { line: [[['Em', ws(56) - 0.04], ['2027,', ws(57) - 0.04]], H] },
+    { line: [[['para', ws(63) - 0.04], ['40h', ws(64) - 0.04, { font: FONTS.hand(190), color: '#ffffff', from: '#9cc7f2' }]], H] },
+  ]);
+  const cap = el('div', 'abs', s.el, 'semanais · sem corte de salário'); cap.style.cssText = 'left:360px;top:850px;font:700 26px Inter;letter-spacing:.06em;color:#0b2a55;background:rgba(255,255,255,.9);padding:8px 20px;border-radius:40px;white-space:nowrap;opacity:0';
+  cap.setAttribute('data-evitar', 'pílula');
+  s.updates.push(fadeIn(cap, we(64)));
+}
+
+/* 7 — jornal: E a hora extra fica MAIS CARA */
+{
+  const s = scene(C7, C8, '#c9b38a', 0.02);
+  bg(s, A + 'jornal.jpg', { z0: 1.25, z1: 1.08, filter: 'sepia(.3) contrast(1.05)' });
+  const mast = el('div', 'abs', s.el, `<div style="font:400 58px DMS;color:#1a1410;letter-spacing:.01em">O Trabalhador</div>
+    <div style="border-top:3px solid #1a1410;border-bottom:1px solid #1a1410;margin-top:6px;padding:4px 0;font:600 15px Inter;letter-spacing:.25em;color:#1a1410">EDIÇÃO EXTRA · QUINTA, 19 DE NOVEMBRO</div>`);
+  mast.style.cssText = 'left:360px;top:220px;transform:translate(-50%,-50%);text-align:center;white-space:nowrap';
+  const card = el('div', 'abs', s.el, `<div style="font:400 26px Type;color:#1a1410">R$ 3.000 por mês</div>
+    <div style="font:400 30px Type;color:#1a1410;margin-top:6px">R$ 13,64/h → <b style="color:#b3120c">R$ 14,29/h</b></div>`);
+  card.style.cssText = 'left:360px;text-align:center;background:rgba(255,250,235,.85);border:2px dashed #1a1410;padding:12px 26px;white-space:nowrap;opacity:0';
+  card.setAttribute('data-evitar', 'cartão');
+  const b = bloco(s, 640, [
+    { seq: [65, 68, { font: FONTS.dms(70), color: '#1a1410', from: '#b8a27a' }] },
+    { seq: [69, 69, { font: FONTS.dms(70, true), color: '#1a1410', from: '#b8a27a' }] },
+    { seq: [70, 71, { font: FONTS.caps(140), color: '#b3120c', from: '#b8a27a' }] },
+    { gap: 16 },
+    { el: card, h: 110 },
+  ]);
+  s.updates.push(fadeIn(card, we(71) - 0.1));
+  s.updates.push(t => { const k = Math.max(0, t - ws(70)); if (k > 0 && k < 0.35) s.el.style.transform += ` translate(${Math.sin(k * 90) * 8 * (1 - k / 0.35)}px, 0)`; });
+}
+
+/* 8 — polaroid real: 1ª redução em 38 anos · 14,8 milhões de trabalhadores */
+{
+  const s = scene(C8, C9, 'radial-gradient(ellipse at 50% 35%, #1a2a44 0%, #070b14 75%)', 0.015);
+  hud(s, 'rgba(255,255,255,.4)'); micro(s);
+  const pol = el('div', 'abs', s.el, `<img src="${A}foto_marinho.jpg" style="width:560px;height:371px;object-fit:cover;display:block">
+    <div style="font:700 34px Hand;color:#222;text-align:center;margin-top:8px">Lula e Marinho, no Planalto</div>`);
+  pol.style.cssText = 'left:360px;top:350px;background:#f7f5f0;padding:14px 14px 10px;box-shadow:0 30px 60px rgba(0,0,0,.6);opacity:0';
+  pol.setAttribute('data-evitar', 'foto');
+  s.updates.push(t => { const p = easeOutExpo(prog(t, C8, C8 + 0.6)); pol.style.opacity = clamp(p * 2);
+    pol.style.transform = `translate(-50%,-50%) translateY(${(1 - p) * -260}px) rotate(${lerp(-12, -2.5, p)}deg)`; });
+  const outA = ws(83) - 0.12;
+  bloco(s, 860, [
+    { seq: [72, 74, { font: S(48, 600), outAt: outA }] },
+    { seq: [75, 77, { font: S(48, 600), outAt: outA }] },
+    { line: [[['em', ws(78) - 0.04], ['38 anos', ws(79) - 0.04, { font: FONTS.caps(120), color: AMA, from: '#3a3000' }]], { font: S(48, 600), outAt: outA }] },
+  ]);
+  const cnt = el('div', 'abs', s.el, '<span class="n">0</span>'); cnt.style.cssText = `left:360px;font:400 170px/1 Anton;color:${AMA};white-space:nowrap;opacity:0;text-shadow:0 0 40px rgba(255,210,63,.35)`;
+  cnt.setAttribute('data-evitar', 'contador');
+  bloco(s, 860, [
+    { seq: [83, 84, { font: S(48, 600) }] },
+    { el: cnt, h: 200 },
+    { line: [[['milhões', ws(86) - 0.04], ['de trabalhadores', ws(90) - 0.04]], { font: S(48, 600) }] },
+  ]);
+  s.updates.push(t => { const p = easeOutExpo(prog(t, ws(85) - 0.1, ws(85) + 0.3)); cnt.style.opacity = p; cnt.style.transform = `translate(-50%,-50%) scale(${lerp(.7, 1, p)})`;
+    const v = 14.8 * easeOut(prog(t, ws(85), ws(89))); cnt.querySelector('.n').textContent = v.toFixed(1).replace('.', ','); });
+  credit(s, 'Foto: TV Brasil / Reprodução g1');
+}
+
+/* 9 — anéis concêntricos: Mas o Supremo ainda vai julgar as regras */
+{
+  const s = scene(C9, C10, 'radial-gradient(ellipse at 50% 32%, #23232a 0%, #060608 70%)', 0.015);
+  const rings = el('div', 'abs', s.el, [0, 1, 2, 3, 4].map(k => `<div class="rg" style="position:absolute;left:0;top:0;width:200px;height:200px;border:2px solid rgba(255,255,255,.5);border-radius:50%;transform:translate(-50%,-50%)"></div>`).join(''));
+  rings.style.cssText = 'left:360px;top:360px;width:0;height:0';
+  const disc = el('div', 'abs', s.el, `<img src="${tw('2696')}" style="width:120px">`);
+  disc.style.cssText = 'left:360px;top:360px;width:210px;height:210px;border-radius:50%;background:radial-gradient(circle at 35% 30%, #5a5a64, #1b1b20 70%);box-shadow:inset 0 2px 6px rgba(255,255,255,.35), 0 20px 50px rgba(0,0,0,.7);display:flex;align-items:center;justify-content:center;opacity:0';
+  disc.setAttribute('data-evitar', 'símbolo');
+  s.updates.push(t => {
+    const p = pop(t, C9 + 0.05, 0.5); disc.style.opacity = p > 0 ? 1 : 0; disc.style.transform = `translate(-50%,-50%) scale(${p})`;
+    rings.querySelectorAll('.rg').forEach((r, k) => { const ph = ((t - C9) * 0.55 + k / 5) % 1; r.style.transform = `translate(-50%,-50%) scale(${1 + ph * 2.6})`; r.style.opacity = (1 - ph) * 0.8; });
+  });
+  bloco(s, 680, [
+    { seq: [91, 93, { font: S(50, 600) }, { 93: { font: FONTS.serif(100), color: AMA, from: '#3a3000' } }] },
+    { seq: [94, 96, { font: S(50, 600) }] },
+    { seq: [97, 98, { font: S(50, 600) }] },
+  ]);
+  stamp(s, 'JULGAMENTO NO STF', 360, 880, we(98) - 0.05, -5, 44);
+}
+
+/* 10 — CTA: barra de busca digitando + caixa de seleção azul em "Comenta aqui" */
+{
+  const s = scene(C10, DUR, 'linear-gradient(180deg, #f3f7ff 0%, #dde7f7 100%)', 0.01);
+  const bar = el('div', 'abs', s.el, `<img src="${tw('1f50d')}" style="width:32px;margin-right:16px"><span class="q"></span><span class="cur" style="display:inline-block;width:3px;height:34px;background:#2f6bff;margin-left:3px;vertical-align:-6px"></span>`);
+  bar.style.cssText = 'left:360px;top:300px;width:600px;height:84px;border-radius:44px;background:#ffffff;box-shadow:0 14px 40px rgba(30,60,120,.18);display:flex;align-items:center;padding:0 30px;box-sizing:border-box;font:500 32px Inter;color:#1d2333;white-space:nowrap;opacity:0';
+  bar.setAttribute('data-evitar', 'busca');
+  const qtxt = 'fim da escala 6x1 decreto';
+  s.updates.push(t => { const p = easeOutExpo(prog(t, C10, C10 + 0.4)); bar.style.opacity = p; bar.style.transform = `translate(-50%,-50%) translateY(${(1 - p) * -40}px)`;
+    const n = Math.floor(clamp((t - C10 - 0.2) * 18, 0, qtxt.length)); bar.querySelector('.q').textContent = qtxt.slice(0, n);
+    bar.querySelector('.cur').style.opacity = Math.floor(t * 3) % 2 ? 0 : 1; });
+  const D = { font: S(54, 700), color: '#1d2333', from: '#c9d3e6' };
+  const b = bloco(s, 650, [
+    { seq: [99, 100, D] },
+    { seq: [101, 102, D] },
+    { seq: [103, 106, { ...D, text: { 103: '2' } }, { 106: { font: FONTS.serif(96), color: AZUL, from: '#c9d3e6' } }] },
+    { seq: [107, 108, { font: FONTS.caps(84), color: AZUL, from: '#c9d3e6' }] },
+  ]);
+  // caixa de seleção azul (com alças) em volta de "Comenta aqui"
+  const sel = el('div', 'abs', s.el, ['0 0', '100% 0', '0 100%', '100% 100%'].map(p => { const [x, y] = p.split(' '); return `<i style="position:absolute;left:${x};top:${y};width:12px;height:12px;background:#fff;border:2px solid ${AZUL};transform:translate(-50%,-50%)"></i>`; }).join(''));
+  sel.style.cssText = `left:360px;width:440px;height:110px;border:3px solid ${AZUL};background:rgba(47,107,255,.10);opacity:0`;
+  sel.style.top = b[3].L.style.top;
+  s.updates.push(t => { const p = easeOutExpo(prog(t, we(108), we(108) + 0.3)); sel.style.opacity = p; sel.style.transform = `translate(-50%,-50%) scale(${lerp(1.25, 1, p)})`; });
+  const cur = el('img', 'abs', s.el); cur.src = tw('1f446'); cur.style.cssText = 'left:0;top:0;width:70px;opacity:0';
+  s.updates.push(t => { const p = easeInOut(prog(t, ws(107), we(108))); cur.style.opacity = p > 0 ? 1 : 0;
+    const y0 = parseFloat(b[3].L.style.top); cur.style.transform = `translate(${lerp(640, 470, p)}px, ${lerp(1150, y0 + 40, p)}px) scale(${t > we(108) && t < we(108) + 0.15 ? 0.85 : 1})`; });
+  const cm = el('div', 'abs', s.el, `<div style="font:700 20px Inter;color:#6b7690;margin-bottom:6px">Adicionar comentário…</div><div class="c" style="font:500 28px Inter;color:#1d2333;min-height:34px"></div>`);
+  cm.style.cssText = 'left:360px;top:990px;width:560px;padding:18px 26px;border-radius:22px;background:rgba(255,255,255,.95);box-shadow:0 14px 40px rgba(30,60,120,.15);opacity:0;box-sizing:border-box';
+  cm.setAttribute('data-evitar', 'comentário');
+  const ctx = '2 dias de folga, finalmente! 🙌';
+  s.updates.push(t => { const p = easeOutExpo(prog(t, we(108) + 0.2, we(108) + 0.6)); cm.style.opacity = p; cm.style.transform = `translate(-50%,-50%) translateY(${(1 - p) * 40}px)`;
+    const n = Math.floor(clamp((t - we(108) - 0.6) * 20, 0, [...ctx].length)); cm.querySelector('.c').textContent = [...ctx].slice(0, n).join(''); });
+}
+
+finalize({
+  duration: DUR, grain: 0.07, vignette: 0.35,
+  flashes: [[C2, 0.16], [C3, 0.16], [C5, 0.16], [C6, 0.2], [C7, 0.16], [C8, 0.16, '255,210,63'], [C9, 0.16], [C10, 0.2]],
+});
+</script>
+</body></html>
